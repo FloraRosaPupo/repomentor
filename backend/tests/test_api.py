@@ -283,6 +283,20 @@ def test_repository_inputs_normalize(value):
 
 
 @pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        ("s://github.com/meteor/", "https://"),
+        ("https://github.com/meteor/", "Falta o nome do repositório"),
+    ],
+)
+def test_incomplete_repository_urls_have_specific_guidance(value, message):
+    with client(Upstream()) as app:
+        response = app.get("/api/issues", params={"repository": value})
+    assert response.status_code == 422
+    assert message in response.json()["detail"][0]["msg"]
+
+
+@pytest.mark.parametrize(
     "value",
     [
         "https://evil.test/owner/repo",

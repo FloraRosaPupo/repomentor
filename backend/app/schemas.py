@@ -7,11 +7,19 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 def normalize_repository(value: str) -> str:
     value = value.strip()
+    if "://" in value and not value.startswith("https://"):
+        raise ValueError(
+            "A URL deve começar com https:// e incluir o repositório. Exemplo: https://github.com/meteor/meteor."
+        )
     if value.startswith("https://"):
         parsed = urlsplit(value)
         if parsed.netloc != "github.com" or parsed.query or parsed.fragment:
             raise ValueError("Use uma URL https://github.com/organização/repositório.")
         value = parsed.path.strip("/")
+    if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}/?", value):
+        raise ValueError(
+            "Falta o nome do repositório depois da organização ou perfil. Para o Meteor, use meteor/meteor."
+        )
     if value.endswith(".git"):
         value = value[:-4]
     if not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9_.-]{1,100}", value):

@@ -116,7 +116,8 @@ export default function RepositoryPicker({ onLoad, busy }) {
           </button>
         </div>
         <small id="repository-note">
-          Salvo somente neste navegador. Repositórios privados não são aceitos.
+          Exemplo: https://github.com/meteor/meteor ou meteor/meteor. Salvo
+          somente neste navegador; apenas repositórios públicos.
         </small>
       </form>
       {storageNotice && (

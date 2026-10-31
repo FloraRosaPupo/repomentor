@@ -190,6 +190,11 @@ describe("RepoMentor flow", () => {
         screen.getByRole("button", { name: "Analisar com Gemma ↗" }),
       ).toBeEnabled(),
     );
+    fireEvent.click(screen.getByRole("button", { name: "Fechar notificação" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Improve setup documentation" }),
+    ).toBeInTheDocument();
   });
 
   it("blocks a second request and selection while inference is pending", async () => {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
 import RepositoryPicker from "./RepositoryPicker";
+import Toast from "./Toast";
 
 const difficulty = {
   beginner: "Iniciante",
@@ -240,6 +241,7 @@ export default function App() {
   const configured = health?.gemma.configured;
   return (
     <>
+      <Toast message={error} onClose={() => setError("")} />
       <a className="skip" href="#workspace">
         Ir para as issues
       </a>
@@ -416,11 +418,6 @@ export default function App() {
               </details>
             )}
           </div>
-          {error && (
-            <div className="error" role="alert">
-              <strong>Não foi possível concluir.</strong> {error}
-            </div>
-          )}
           <div className="work-grid">
             <aside className="issue-panel" aria-label="Issues abertas">
               <div className="panel-heading">
