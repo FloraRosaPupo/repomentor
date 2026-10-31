@@ -113,18 +113,25 @@ A CI executa essas verificações em pull requests e na `main`, sem credenciais 
 
 - [x] Criar a base documental do repositório.
 - [x] Inicializar frontend e backend com endpoint de saúde.
-- [ ] Validar acesso ao Gemma 4 no Google Cloud.
-- [x] Implementar cadastro local, consulta de issues e coleta de contexto de repositórios públicos.
+- [x] Validar acesso ao Gemma 4 no Google Cloud.
+- [x] Implementar cadastro local, consulta de issues e coleta de contexto de repositórios públicos. Repositorio utilizado para teste - [Meteor](https://github.com/meteor/meteor)
 - [x] Implementar análise com evidências e guia de contribuição (integração real pendente).
-- [ ] Executar testes e revisar pelo menos três issues reais.
+- [x] Executar testes e revisar pelo menos três issues reais.
 - [ ] Gravar demonstração e preparar a primeira release.
 
 Nesta prévia, a análise é por issue selecionada; classificação em lote fica para depois. Backend local, sem autenticação de usuários ou proteção distribuída contra abuso: não expor diretamente na internet.
 
 ## Participação no evento
 
-A categoria pretendida é Best Use of Gemma. Este repositório não comprova inscrição nem elegibilidade; a demonstração, o enquadramento no tema e as regras do evento precisam ser verificados antes da submissão.
+Hacktoberfest Hack Day São José dos Campos: A categoria pretendida é Best Use of Gemma.
 
 ## Licença
 
 [MIT](LICENSE). O projeto não é afiliado ao Meteor ou ao Google. Modelos, dependências e materiais consultados mantêm suas próprias licenças.
+
+## Authors
+
+- [Flora Rosa Pupo](https://github.com/FloraRosaPupo)
+- [Daniel Dias](https://github.com/Danieldpereira)
+- [Lucas Roberto](https://github.com/LucasR022)
+- [Ana Claudia](https://github.com/anacnogueira)
