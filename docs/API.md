@@ -5,11 +5,14 @@ O MVP começa com análise de **uma issue por solicitação**, para limitar cons
 | Endpoint | Entrada | Resultado |
 | --- | --- | --- |
 | `GET /api/health` | Nenhuma | Estado do backend, configuração do Gemma e flags |
+| `POST /api/repository/analyze` | `{"repository":"owner/repo"}` | Visão geral, tecnologias, arquitetura e próximos passos, sem exigir issue |
 | `GET /api/issues?repository=owner/repo` | Nome ou URL pública GitHub no parâmetro `repository` | Metadados e até 30 issues abertas; PRs excluídos |
 | `POST /api/analyze` | `{"repository":"meteor/meteor","issue_number":42}` | Issue, análise e metadados |
 | `POST /api/issues/{issue_number}/guide` | `{"repository":"owner/repo"}` | Repositório, issue, roteiro e metadados |
 
 O número 42 é ilustrativo. Use um número retornado pela consulta real.
+
+A listagem inclui `issues_state`: `available`, `empty`, `disabled` ou `limited`. Uma busca limitada não comprova ausência de issues. Repositórios sem issues podem ser explorados e analisados; repositórios vazios ou sem contexto legível recebem uma explicação sem chamar o modelo.
 
 Análises contêm resumo, arquitetura, dificuldade, justificativa, conhecimentos necessários, evidências e limitações. Guias contêm passos sugeridos, estratégia de testes, perguntas para mantenedores, evidências e limitações.
 

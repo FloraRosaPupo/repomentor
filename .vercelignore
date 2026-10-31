@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+backend/.venv
+backend/tests
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+frontend/node_modules
+frontend/dist
+artifacts
+.git
+credentials*.json
+*service-account*.json
+application_default_credentials.json

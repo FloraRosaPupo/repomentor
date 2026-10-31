@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
 import RepositoryPicker from "./RepositoryPicker";
 import Toast from "./Toast";
+import RepositoryEmptyState from "./RepositoryEmptyState";
 
 const difficulty = {
   beginner: "Iniciante",
@@ -21,7 +22,7 @@ function Evidence({ items }) {
             </a>
             <p>{item.reason}</p>
             <small>
-              Caminho verificado · relação com a issue é uma hipótese
+              Caminho verificado · interpretação da IA precisa de revisão
             </small>
           </div>
         ))
@@ -34,23 +35,53 @@ function Evidence({ items }) {
   );
 }
 
-function Result({ value, guide = false }) {
+function Result({ value, guide = false, overview = false }) {
   const result = value.result;
   return (
     <article
       className="result"
-      aria-label={guide ? "Guia de contribuição" : "Análise da issue"}
+      aria-label={
+        overview
+          ? "Visão geral do repositório"
+          : guide
+            ? "Guia de contribuição"
+            : "Análise da issue"
+      }
     >
       <div className="section-heading">
         <h3>
-          {guide ? "Seu caminho para contribuir" : "O que o Gemma encontrou"}
+          {overview
+            ? "Conheça o projeto por dentro"
+            : guide
+              ? "Seu caminho para contribuir"
+              : "O que o Gemma encontrou"}
         </h3>
-        {!guide && (
+        {!guide && !overview && (
           <span className="badge">{difficulty[result.difficulty]}</span>
         )}
       </div>
       <p>{result.summary}</p>
-      {guide ? (
+      {overview ? (
+        <>
+          <h4>Arquitetura e organização</h4>
+          <p>{result.architecture}</p>
+          <div className="tags">
+            {result.technologies.map((name) => (
+              <span key={name}>{name}</span>
+            ))}
+          </div>
+          <h4>Primeiros passos para explorar</h4>
+          <ol className="steps">
+            {result.next_steps.map((step, index) => (
+              <li key={index}>{step}</li>
+            ))}
+          </ol>
+          <p className="muted">
+            Este é um roteiro de aprendizado, não uma lista de issues ou tarefas
+            aprovadas pelos mantenedores.
+          </p>
+        </>
+      ) : guide ? (
         <>
           <h4>Passos sugeridos</h4>
           <ol className="steps">
@@ -129,6 +160,8 @@ export default function App() {
   const [guide, setGuide] = useState(null);
   const [repository, setRepository] = useState(null);
   const [repositoryInfo, setRepositoryInfo] = useState(null);
+  const [issuesState, setIssuesState] = useState(null);
+  const [overview, setOverview] = useState(null);
   const request = useRef(null);
 
   useEffect(() => {
@@ -158,6 +191,8 @@ export default function App() {
     setLoaded(false);
     setRepository(null);
     setRepositoryInfo(null);
+    setIssuesState(null);
+    setOverview(null);
     setQuery("");
     try {
       const [status, data] = await Promise.all([
@@ -177,6 +212,9 @@ export default function App() {
       setGuide(null);
       setRepository(data.repository);
       setRepositoryInfo(data.info);
+      setIssuesState(
+        data.issues_state ?? (data.issues.length ? "available" : "empty"),
+      );
       return data;
     } catch (err) {
       if (!controller.signal.aborted)
@@ -188,14 +226,24 @@ export default function App() {
   }
 
   async function generate(kind) {
-    if (!selected || request.current) return;
+    if (!repository || (kind !== "repository" && !selected) || request.current)
+      return;
     const controller = new AbortController();
     request.current = controller;
     setBusy(kind);
     setError("");
+    if (kind === "repository") {
+      setSelected(null);
+      setAnalysis(null);
+      setGuide(null);
+    }
     try {
       const data = await api(
-        kind === "guide" ? `/issues/${selected.number}/guide` : "/analyze",
+        kind === "repository"
+          ? "/repository/analyze"
+          : kind === "guide"
+            ? `/issues/${selected.number}/guide`
+            : "/analyze",
         {
           method: "POST",
           signal: AbortSignal.any([
@@ -203,14 +251,15 @@ export default function App() {
             AbortSignal.timeout(250_000),
           ]),
           body: JSON.stringify(
-            kind === "guide"
+            kind !== "analysis"
               ? { repository }
               : { repository, issue_number: selected.number },
           ),
         },
       );
       if (!controller.signal.aborted) {
-        if (kind === "guide") setGuide(data);
+        if (kind === "repository") setOverview(data);
+        else if (kind === "guide") setGuide(data);
         else setAnalysis(data);
       }
     } catch (err) {
@@ -227,6 +276,7 @@ export default function App() {
   }
 
   function select(issue) {
+    setOverview(null);
     setSelected(issue);
     setAnalysis(null);
     setGuide(null);
@@ -397,6 +447,24 @@ export default function App() {
               </div>
             </div>
           )}
+          {repository && (
+            <div className="repository-actions">
+              <button
+                className="primary"
+                onClick={() => generate("repository")}
+                disabled={
+                  !!busy || !configured || !health?.features.repository_overview
+                }
+              >
+                {busy === "repository"
+                  ? "Gemma está conhecendo o projeto…"
+                  : "Conhecer o repositório com Gemma"}
+              </button>
+              <span>
+                Arquitetura, tecnologias e primeiros passos — com ou sem issues.
+              </span>
+            </div>
+          )}
           <div className="connection">
             <span className={`status-dot ${configured ? "ready" : ""}`} />
             <span>
@@ -431,11 +499,15 @@ export default function App() {
                   placeholder="Busque seu próximo desafio…"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  disabled={!loaded}
+                  disabled={!loaded || !issues.length}
                 />
               </label>
               <div className="issue-list">
-                {!loaded ? (
+                {busy === "issues" ? (
+                  <p className="empty-message" role="status">
+                    Carregando o repositório e consultando suas issues…
+                  </p>
+                ) : !loaded ? (
                   <div className="empty-list">
                     <span>⌘</span>
                     <h4>
@@ -449,11 +521,27 @@ export default function App() {
                     </p>
                   </div>
                 ) : !filtered.length ? (
-                  <p className="empty-message">
-                    {issues.length
-                      ? "Nenhuma issue corresponde à busca."
-                      : "Nenhuma issue aberta foi encontrada nesta consulta."}
-                  </p>
+                  <div className="empty-message">
+                    {issues.length ? (
+                      <>
+                        <p>Nenhuma issue corresponde à busca.</p>
+                        <button
+                          className="secondary"
+                          onClick={() => setQuery("")}
+                        >
+                          Limpar busca
+                        </button>
+                      </>
+                    ) : (
+                      <p>
+                        {issuesState === "disabled"
+                          ? "As issues estão desativadas pelos mantenedores."
+                          : issuesState === "limited"
+                            ? "Nenhuma issue encontrada nas páginas consultadas."
+                            : "Nenhuma issue aberta no momento."}
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   filtered.map((issue) => (
                     <button
@@ -481,9 +569,23 @@ export default function App() {
             <div
               className="detail-panel"
               aria-live="polite"
-              aria-busy={busy === "analysis" || busy === "guide"}
+              aria-busy={!!busy && busy !== "issues"}
             >
-              {!selected ? (
+              {busy === "repository" && (
+                <p className="progress" role="status">
+                  Consultando a documentação e os arquivos do projeto. A análise
+                  não depende de issues e pode levar alguns minutos.
+                </p>
+              )}
+              {overview ? (
+                <Result value={overview} overview />
+              ) : !selected && loaded && !issues.length ? (
+                <RepositoryEmptyState
+                  repository={repository}
+                  state={issuesState}
+                  configured={configured}
+                />
+              ) : !selected ? (
                 <div className="empty-detail">
                   <div className="compass">✧</div>
                   <p className="eyebrow">DO CONTEXTO À CONTRIBUIÇÃO</p>

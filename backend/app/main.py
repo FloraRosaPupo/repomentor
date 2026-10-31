@@ -17,6 +17,7 @@ from .schemas import (
     AnalyzeRequest,
     Guide,
     RepositoryName,
+    RepositoryOverview,
     RepositoryRequest,
     ServiceError,
 )
@@ -56,6 +57,7 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
                 "connection_verified": False,
             },
             "features": {
+                "repository_overview": settings.enable_architecture_analysis,
                 "analysis": settings.enable_architecture_analysis
                 and settings.enable_issue_classification,
                 "guide": settings.enable_contribution_guide,
@@ -66,12 +68,13 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
     async def issues(repository: RepositoryName):
         return await GitHubService(app.state.http, repository, settings.github_token).issues()
 
-    async def run(repository: str, number: int, guide: bool):
-        enabled = (
-            settings.enable_contribution_guide
-            if guide
-            else (settings.enable_architecture_analysis and settings.enable_issue_classification)
-        )
+    async def run(repository: str, number: int | None, mode: str):
+        enabled = {
+            "guide": settings.enable_contribution_guide,
+            "analysis": settings.enable_architecture_analysis
+            and settings.enable_issue_classification,
+            "repository": settings.enable_architecture_analysis,
+        }[mode]
         if not enabled:
             raise ServiceError("feature_disabled", "Esta funcionalidade está desativada.", 409)
         if settings.missing_configuration:
@@ -94,7 +97,7 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
                     json.dumps(
                         [
                             context,
-                            guide,
+                            mode,
                             settings.gemma_model_id,
                             settings.endpoint_url,
                             PROMPT_VERSION,
@@ -107,12 +110,22 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
                     answer = copy.deepcopy(cache[key][1])
                     answer["metadata"]["cached"] = True
                     return answer
-                task = (
-                    "Gere um roteiro de investigação e contribuição, incluindo testes sugeridos e dúvidas para mantenedores."
-                    if guide
-                    else "Explique a arquitetura observada e classifique a dificuldade desta issue para novos contribuidores."
-                )
-                answer = await app.state.gemma.generate(context, Guide if guide else Analysis, task)
+                tasks = {
+                    "guide": (
+                        Guide,
+                        "Gere um roteiro de investigação e contribuição, incluindo testes sugeridos e dúvidas para mantenedores.",
+                    ),
+                    "analysis": (
+                        Analysis,
+                        "Explique a arquitetura observada e classifique a dificuldade desta issue para novos contribuidores.",
+                    ),
+                    "repository": (
+                        RepositoryOverview,
+                        "Apresente o propósito, as tecnologias e a arquitetura observada do repositório. Sugira uma sequência de leitura e primeiros passos para aprender o projeto a partir da documentação. Nenhuma issue foi fornecida: não invente bugs, tarefas solicitadas ou oportunidades confirmadas pelos mantenedores.",
+                    ),
+                }
+                schema, task = tasks[mode]
+                answer = await app.state.gemma.generate(context, schema, task)
                 answer["issue"] = context["issue"]
                 answer["repository"] = repository
                 if settings.enable_cache:
@@ -131,11 +144,15 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
 
     @app.post("/api/analyze")
     async def analyze(body: AnalyzeRequest):
-        return await run(body.repository, body.issue_number, False)
+        return await run(body.repository, body.issue_number, "analysis")
+
+    @app.post("/api/repository/analyze")
+    async def repository_overview(body: RepositoryRequest):
+        return await run(body.repository, None, "repository")
 
     @app.post("/api/issues/{issue_number}/guide")
     async def guide(body: RepositoryRequest, issue_number: int = Path(gt=0)):
-        return await run(body.repository, issue_number, True)
+        return await run(body.repository, issue_number, "guide")
 
     return app
 

@@ -40,6 +40,9 @@ O MVP inclui cadastro local de repositórios públicos, consulta de issues, aná
 
 ## Documentação
 
+- [Configurar tokens e variáveis de ambiente](docs/ENVIRONMENT.md)
+- [Código de Conduta](CODE_OF_CONDUCT.md)
+
 - [Plano de implementação e specs](docs/IMPLEMENTATION_PLAN.md)
 - [Decisão Google Cloud + Gemma 4](docs/GOOGLE_CLOUD.md)
 - [Plano de testes e aceite](docs/TEST_PLAN.md)
