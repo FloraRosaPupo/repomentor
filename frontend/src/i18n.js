@@ -1,5 +1,44 @@
 export const translations = {
   pt: {
+    btnOverview: "Conhecer o repositório com Gemma",
+    overviewBusy: "Gemma está conhecendo o projeto…",
+    overviewHint:
+      "Arquitetura, tecnologias e primeiros passos — com ou sem issues.",
+    overviewProgress:
+      "Consultando a documentação e os arquivos do projeto. A análise não depende de issues e pode levar alguns minutos.",
+    loadingRepository: "Carregando o repositório e consultando suas issues…",
+    openIssues: "Issues abertas",
+    clearSearch: "Limpar busca",
+    issuesDisabled: "As issues estão desativadas pelos mantenedores.",
+    issuesLimited: "Nenhuma issue encontrada nas páginas consultadas.",
+    issuesEmpty: "Nenhuma issue aberta no momento.",
+    repositoryLoaded: "REPOSITÓRIO CARREGADO",
+    documentation: "Documentação",
+    technologies: "Tecnologias",
+    architecture: "Arquitetura",
+    exploreFiles: "Explorar os arquivos ↗",
+    viewIssues: "Ver issues no GitHub ↗",
+    chooseRepository: "Escolher outro repositório ↑",
+    noIssuesDisclaimer:
+      "A ausência de issues não é um erro. O RepoMentor não inventa tarefas para preencher a lista.",
+    noIssuesReady:
+      "Use “Conhecer o repositório com Gemma” para receber um roteiro de aprendizado sem precisar selecionar uma issue.",
+    noIssuesWaiting:
+      "Você já pode explorar os arquivos no GitHub. O roteiro por IA ficará disponível quando o Gemma estiver configurado.",
+    emptyStates: {
+      empty: {
+        title: "Sem issues abertas. O projeto continua disponível.",
+        text: "Este repositório não tem issues abertas no momento. Você ainda pode entender seu propósito, conhecer a arquitetura e estudar os arquivos antes de contribuir.",
+      },
+      disabled: {
+        title: "As issues estão desativadas neste projeto.",
+        text: "Os mantenedores podem usar outro canal para acompanhar tarefas. Explore a documentação para conhecer o processo de contribuição; a análise do repositório continua disponível.",
+      },
+      limited: {
+        title: "Nenhuma issue apareceu nesta amostra.",
+        text: "A consulta tem um limite de páginas e pode ter encontrado apenas pull requests. Isso não significa que o projeto não tenha issues. Confira a lista completa no GitHub ou explore sua arquitetura.",
+      },
+    },
     ariaOverview: "Visão geral do repositório",
     overviewHeading: "Conheça o projeto por dentro",
     overviewArchitecture: "Arquitetura e organização",
@@ -184,6 +223,45 @@ export const translations = {
     footerNote: "GitHub somente leitura · IA no Google Cloud",
   },
   en: {
+    btnOverview: "Explore the repository with Gemma",
+    overviewBusy: "Gemma is exploring the project…",
+    overviewHint:
+      "Architecture, technologies and first steps — with or without issues.",
+    overviewProgress:
+      "Reading the project documentation and files. This analysis does not require issues and may take a few minutes.",
+    loadingRepository: "Loading the repository and fetching its issues…",
+    openIssues: "Open issues",
+    clearSearch: "Clear search",
+    issuesDisabled: "The maintainers have disabled issues.",
+    issuesLimited: "No issues were found in the pages checked.",
+    issuesEmpty: "There are no open issues right now.",
+    repositoryLoaded: "REPOSITORY LOADED",
+    documentation: "Documentation",
+    technologies: "Technologies",
+    architecture: "Architecture",
+    exploreFiles: "Explore the files ↗",
+    viewIssues: "View issues on GitHub ↗",
+    chooseRepository: "Choose another repository ↑",
+    noIssuesDisclaimer:
+      "Having no issues is not an error. RepoMentor does not invent tasks to fill the list.",
+    noIssuesReady:
+      "Use “Explore the repository with Gemma” to get a learning guide without selecting an issue.",
+    noIssuesWaiting:
+      "You can already explore files on GitHub. AI guidance becomes available once Gemma is configured.",
+    emptyStates: {
+      empty: {
+        title: "No open issues. The project is still available.",
+        text: "This repository has no open issues right now. You can still learn its purpose, explore its architecture and study the files before contributing.",
+      },
+      disabled: {
+        title: "Issues are disabled for this project.",
+        text: "Maintainers may track tasks elsewhere. Explore the documentation to learn their contribution process; repository analysis is still available.",
+      },
+      limited: {
+        title: "No issues appeared in this sample.",
+        text: "The query has a page limit and may have found only pull requests. This does not mean the project has no issues. Check the full list on GitHub or explore its architecture.",
+      },
+    },
     ariaOverview: "Repository overview",
     overviewHeading: "Get to know the project",
     overviewArchitecture: "Architecture and organization",
@@ -249,20 +327,20 @@ export const translations = {
     pickerSubtitle:
       "Paste the URL of a public repository or type organization/repository.",
     badgePublicGithub: "PUBLIC GITHUB",
-    repoLabel: "Repositório GitHub",
+    repoLabel: "GitHub repository",
     repoPlaceholder: "https://github.com/organization/repository",
     repoSubmitBusy: "Please wait…",
-    repoSubmit: "Cadastrar e explorar ↗",
+    repoSubmit: "Add and explore ↗",
     repoNote:
       "Example: https://github.com/meteor/meteor or meteor/meteor. Saved only in this browser; public repositories only.",
     storageNotice:
       "The browser did not allow storage. Your repositories remain available only for this session.",
     savedReposTitle: "Your repositories",
-    removeRepoAria: "Remover {name} dos salvos",
+    removeRepoAria: "Remove {name} from saved repositories",
     suggestionsSummary: "Don't know where to start? Explore these suggestions",
     suggestionsIntro:
       "Curated by contribution profile, not a popularity rank. Stars show popularity; they don't guarantee ease or available issues.",
-    btnExplore: "Explorar →",
+    btnExplore: "Explore →",
     guideLink: "Guide ↗",
 
     // Repo suggestions
@@ -320,9 +398,9 @@ export const translations = {
     viewOnGithub: "View on GitHub ↗",
     originalDescription: "Original description",
     noDescription: "This issue has no description.",
-    btnAnalyzing: "Gemma está analisando…",
+    btnAnalyzing: "Gemma is analyzing…",
     btnReanalyze: "Analyze again ↗",
-    btnAnalyze: "Analisar com Gemma ↗",
+    btnAnalyze: "Analyze with Gemma ↗",
     btnPreparingGuide: "Preparing your guide…",
     btnCreateGuide: "Create contribution guide",
     progressMessage:
@@ -357,7 +435,7 @@ export const translations = {
 
     // Errors & Toast
     toastErrorTitle: "Unable to continue",
-    toastCloseAria: "Fechar notificação",
+    toastCloseAria: "Close notification",
     errBackend: "Could not connect to backend.",
     errIssues: "Could not load issues.",
     errTimeout: "Analysis timed out. Please try again.",

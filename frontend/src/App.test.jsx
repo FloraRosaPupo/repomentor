@@ -80,10 +80,34 @@ describe("RepoMentor flow", () => {
     expect(
       screen.queryByText("Investigue a documentação."),
     ).not.toBeInTheDocument();
+    api.mockResolvedValueOnce({
+      ...analysis,
+      metadata: { ...analysis.metadata, language: "en" },
+      result: {
+        ...analysis.result,
+        summary: "Review the documentation.",
+        architecture: "Read the README, then run the setup.",
+        reasoning: "More context is needed.",
+        required_knowledge: ["Markdown"],
+        evidence: [
+          {
+            path: "README.md",
+            reason: "Documents the setup.",
+            url: "https://github.com/meteor/meteor",
+          },
+        ],
+        limitations: ["Human review is required."],
+      },
+    });
     fireEvent.click(
-      screen.getByRole("button", { name: "Analisar com Gemma ↗" }),
+      screen.getByRole("button", { name: "Analyze with Gemma ↗" }),
     );
-    await screen.findByText("Investigue a documentação.");
+    await screen.findByText("Review the documentation.");
+    expect(
+      screen.getByText("Read the README, then run the setup."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Documents the setup.")).toBeInTheDocument();
+    expect(screen.getByText("Human review is required.")).toBeInTheDocument();
     expect(api).toHaveBeenLastCalledWith(
       "/analyze",
       expect.objectContaining({

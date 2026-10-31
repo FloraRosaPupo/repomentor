@@ -515,13 +515,9 @@ export default function App() {
                   !!busy || !configured || !health?.features.repository_overview
                 }
               >
-                {busy === "repository"
-                  ? "Gemma está conhecendo o projeto…"
-                  : "Conhecer o repositório com Gemma"}
+                {busy === "repository" ? t.overviewBusy : t.btnOverview}
               </button>
-              <span>
-                Arquitetura, tecnologias e primeiros passos — com ou sem issues.
-              </span>
+              <span>{t.overviewHint}</span>
             </div>
           )}
           <div className="connection">
@@ -546,7 +542,7 @@ export default function App() {
             )}
           </div>
           <div className="work-grid">
-            <aside className="issue-panel" aria-label="Issues abertas">
+            <aside className="issue-panel" aria-label={t.openIssues}>
               <div className="panel-heading">
                 <h3>{t.opportunities}</h3>
                 <span className="count">{loaded ? filtered.length : "—"}</span>
@@ -564,7 +560,7 @@ export default function App() {
               <div className="issue-list">
                 {busy === "issues" ? (
                   <p className="empty-message" role="status">
-                    Carregando o repositório e consultando suas issues…
+                    {t.loadingRepository}
                   </p>
                 ) : !loaded ? (
                   <div className="empty-list">
@@ -583,21 +579,21 @@ export default function App() {
                   <div className="empty-message">
                     {issues.length ? (
                       <>
-                        <p>Nenhuma issue corresponde à busca.</p>
+                        <p>{t.emptySearch}</p>
                         <button
                           className="secondary"
                           onClick={() => setQuery("")}
                         >
-                          Limpar busca
+                          {t.clearSearch}
                         </button>
                       </>
                     ) : (
                       <p>
                         {issuesState === "disabled"
-                          ? "As issues estão desativadas pelos mantenedores."
+                          ? t.issuesDisabled
                           : issuesState === "limited"
-                            ? "Nenhuma issue encontrada nas páginas consultadas."
-                            : "Nenhuma issue aberta no momento."}
+                            ? t.issuesLimited
+                            : t.issuesEmpty}
                       </p>
                     )}
                   </div>
@@ -632,14 +628,14 @@ export default function App() {
             >
               {busy === "repository" && (
                 <p className="progress" role="status">
-                  Consultando a documentação e os arquivos do projeto. A análise
-                  não depende de issues e pode levar alguns minutos.
+                  {t.overviewProgress}
                 </p>
               )}
               {overview ? (
                 <Result value={overview} overview t={t} />
               ) : !selected && loaded && !issues.length ? (
                 <RepositoryEmptyState
+                  t={t}
                   repository={repository}
                   state={issuesState}
                   configured={configured}
