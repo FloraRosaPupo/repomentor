@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     enable_contribution_guide: bool = True
     enable_cache: bool = True
     request_timeout_seconds: float = Field(default=120, ge=5, le=300)
+
+    @field_validator("gemma_provider", "gemma_model_id", "google_ai_api_key", mode="before")
+    @classmethod
+    def strip_environment_whitespace(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
     @model_validator(mode="after")
     def validate_endpoint(self):

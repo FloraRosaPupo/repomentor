@@ -74,5 +74,13 @@ def test_google_ai_requires_key_without_vertex_fields():
         _env_file=None, gemma_provider="google-ai", gemma_model_id="gemma-4-26b-a4b-it"
     )
     assert settings.missing_configuration == ["GOOGLE_AI_API_KEY"]
+    piped = Settings(
+        _env_file=None,
+        gemma_provider="google-ai\r\n",
+        gemma_model_id="gemma-4-26b-a4b-it\r\n",
+        google_ai_api_key="test\r\n",
+    )
+    assert piped.missing_configuration == []
+    assert piped.google_ai_api_key == "test"
     with pytest.raises(ValueError):
         Settings(_env_file=None, gemma_provider="google-ai", gemma_model_id="gemini-test")
