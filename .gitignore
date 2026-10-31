@@ -21,4 +21,9 @@ credentials*.json
 *service-account*.json
 application_default_credentials.json
 artifacts/
+.vercel/
+/public/
 pytest-cache-files-*/
+
+.vercel
+.env*.local
