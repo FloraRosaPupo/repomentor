@@ -2,6 +2,16 @@
 
 O backend lê `.env` na raiz do repositório. O frontend não precisa de tokens.
 
+## Gemma pelo Google AI Studio (sem endpoint Vertex)
+
+Configure `GEMMA_PROVIDER=google-ai`, `GEMMA_MODEL_ID=gemma-4-26b-a4b-it` e
+`GOOGLE_AI_API_KEY` com uma chave nova do AI Studio. Os campos Vertex e ADC não
+são necessários nessa opção. A chave é enviada somente pelo backend ao Google.
+Na Vercel, cadastre em Production e faça redeploy. O modelo continua sendo Gemma,
+embora a API se chame Gemini API; não há troca automática para modelos Gemini.
+
+Referência: https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api
+
 ## Execução local
 
 Na raiz, copie o exemplo apenas se ainda não existir um `.env`:

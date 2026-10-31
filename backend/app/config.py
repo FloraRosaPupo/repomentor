@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -11,6 +12,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ROOT / ".env", extra="ignore")
 
     google_cloud_project: str = ""
+    gemma_provider: Literal["vertex-ai", "google-ai"] = "vertex-ai"
+    google_ai_api_key: str = Field(default="", repr=False)
     google_cloud_location: str = ""
     vertex_ai_endpoint_id: str = ""
     # Dedicated public endpoints may require their dedicatedEndpointDns hostname.
@@ -25,6 +28,12 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_endpoint(self):
+        if self.gemma_provider == "google-ai" and self.gemma_model_id not in (
+            "",
+            "gemma-4-26b-a4b-it",
+            "gemma-4-31b-it",
+        ):
+            raise ValueError("Select a supported Gemma 4 model for Google AI.")
         for value in (
             self.google_cloud_project,
             self.google_cloud_location,
@@ -42,6 +51,12 @@ class Settings(BaseSettings):
 
     @property
     def missing_configuration(self) -> list[str]:
+        if self.gemma_provider == "google-ai":
+            return [
+                name.upper()
+                for name in ("google_ai_api_key", "gemma_model_id")
+                if not getattr(self, name)
+            ]
         names = [
             "google_cloud_project",
             "google_cloud_location",
@@ -52,6 +67,11 @@ class Settings(BaseSettings):
 
     @property
     def endpoint_url(self) -> str:
+        if self.gemma_provider == "google-ai":
+            return (
+                "https://generativelanguage.googleapis.com/v1beta/models/"
+                f"{self.gemma_model_id}:generateContent"
+            )
         host = (
             self.vertex_ai_endpoint_host
             or f"{self.google_cloud_location}-aiplatform.googleapis.com"

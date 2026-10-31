@@ -48,36 +48,49 @@ class GemmaService:
         if self.settings.missing_configuration:
             raise ServiceError(
                 "gemma_not_configured",
-                "Configure projeto, região, endpoint e modelo Gemma 4 no backend.",
+                "Configure as credenciais e o modelo Gemma 4 no backend.",
                 503,
             )
         started = time.monotonic()
         try:
             async with asyncio.timeout(self.settings.request_timeout_seconds):
-                token = await asyncio.to_thread(self.token_provider)
-                response = await self.client.post(
-                    self.settings.endpoint_url,
-                    headers={"Authorization": f"Bearer {token}"},
-                    json={
+                google_ai = self.settings.gemma_provider == "google-ai"
+                prompt = json.dumps(
+                    {
+                        "task": task,
+                        "schema": schema.model_json_schema(),
+                        "untrusted_repository_context": context,
+                    },
+                    ensure_ascii=False,
+                )
+                if google_ai:
+                    headers = {"x-goog-api-key": self.settings.google_ai_api_key}
+                    payload = {
+                        "systemInstruction": {"parts": [{"text": SYSTEM}]},
+                        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                        "generationConfig": {
+                            "temperature": 0.1,
+                            "maxOutputTokens": 4096,
+                            "thinkingConfig": {"thinkingLevel": "minimal"},
+                        },
+                    }
+                else:
+                    token = await asyncio.to_thread(self.token_provider)
+                    headers = {"Authorization": f"Bearer {token}"}
+                    payload = {
                         "model": self.settings.gemma_model_id,
                         "stream": False,
                         "temperature": 0.1,
                         "max_tokens": 4096,
                         "messages": [
                             {"role": "system", "content": SYSTEM},
-                            {
-                                "role": "user",
-                                "content": json.dumps(
-                                    {
-                                        "task": task,
-                                        "schema": schema.model_json_schema(),
-                                        "untrusted_repository_context": context,
-                                    },
-                                    ensure_ascii=False,
-                                ),
-                            },
+                            {"role": "user", "content": prompt},
                         ],
-                    },
+                    }
+                response = await self.client.post(
+                    self.settings.endpoint_url,
+                    headers=headers,
+                    json=payload,
                     timeout=self.settings.request_timeout_seconds,
                 )
         except (TimeoutError, httpx.TimeoutException) as exc:
@@ -91,7 +104,9 @@ class GemmaService:
         if response.status_code in (401, 403):
             raise ServiceError(
                 "gemma_permission",
-                "Verifique as credenciais e a permissão aiplatform.endpoints.predict.",
+                "Verifique a chave Google AI e o acesso ao modelo."
+                if google_ai
+                else "Verifique as credenciais e a permissão aiplatform.endpoints.predict.",
                 503,
             )
         if response.status_code == 429:
@@ -103,14 +118,24 @@ class GemmaService:
         if response.status_code != 200:
             raise ServiceError(
                 "gemma_error",
-                "Verifique o endpoint e sua compatibilidade com chat/completions no Vertex AI.",
+                "Verifique o modelo Gemma e sua disponibilidade no provedor configurado.",
             )
         try:
             data = response.json()
-            choice = data["choices"][0]
-            if choice.get("finish_reason") != "stop":
-                raise ValueError("Incomplete completion")
-            content = choice["message"]["content"]
+            if google_ai:
+                choice = data["candidates"][0]
+                if choice.get("finishReason") != "STOP":
+                    raise ValueError("Incomplete completion")
+                content = "".join(
+                    part.get("text", "")
+                    for part in choice["content"]["parts"]
+                    if not part.get("thought")
+                )
+            else:
+                choice = data["choices"][0]
+                if choice.get("finish_reason") != "stop":
+                    raise ValueError("Incomplete completion")
+                content = choice["message"]["content"]
             # Permit a single JSON code fence, never arbitrary prose extraction.
             if content.strip().startswith("```json") and content.strip().endswith("```"):
                 content = content.strip()[7:-3].strip()
@@ -151,11 +176,18 @@ class GemmaService:
                 "Referências sem comprovação foram removidas: " + ", ".join(rejected)
             )
         usage = data.get("usage") or {}
+        if google_ai:
+            counts = data.get("usageMetadata") or {}
+            usage = {
+                "prompt_tokens": counts.get("promptTokenCount"),
+                "completion_tokens": counts.get("candidatesTokenCount"),
+                "total_tokens": counts.get("totalTokenCount"),
+            }
         return {
             "result": result,
             "metadata": {
                 "model": self.settings.gemma_model_id,
-                "provider": "vertex-ai",
+                "provider": self.settings.gemma_provider,
                 "prompt_version": PROMPT_VERSION,
                 "commit": context["commit"],
                 "elapsed_ms": round((time.monotonic() - started) * 1000),

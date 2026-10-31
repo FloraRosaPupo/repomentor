@@ -52,7 +52,7 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
             "gemma": {
                 "configured": not settings.missing_configuration,
                 "missing": settings.missing_configuration,
-                "provider": "vertex-ai",
+                "provider": settings.gemma_provider,
                 "model": settings.gemma_model_id or None,
                 "connection_verified": False,
             },
