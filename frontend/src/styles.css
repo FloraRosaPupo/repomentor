@@ -638,6 +638,7 @@ h1 em {
 }
 .map-path b {
   font-size: 9px;
+  color: #173329;
   background: #e5eddb;
   border: 1px solid #ccd7bf;
   border-radius: 50%;
@@ -664,10 +665,17 @@ h1 em {
   padding-right: 12px;
 }
 .map-last {
+  color: #173329;
   border-radius: 9px;
   background: #e4edd6;
   padding-left: 10px !important;
   margin-left: -10px;
+}
+.map-last small {
+  color: #465b40;
+}
+.map-path > .map-last > span:last-child {
+  color: #465b40;
 }
 .map-note {
   font-size: 10px;
