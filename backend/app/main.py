@@ -113,15 +113,26 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
                 tasks = {
                     "guide": (
                         Guide,
-                        "Gere um roteiro de investigação e contribuição, incluindo testes sugeridos e dúvidas para mantenedores.",
+                        "Gere um guia pontual para esta issue. No summary, indique objetivo e tecnologias relevantes. "
+                        "Em steps, descreva o fluxo afetado (entrada → processamento → saída), arquivos para investigar "
+                        "e passos de contribuição em ordem. Em testing_strategy, proponha 3 a 5 cenários com entrada, "
+                        "ação e resultado esperado, incluindo sucesso, erro e limite; distinga existentes de sugeridos. "
+                        "Faça perguntas aos mantenedores somente para decisões que o contexto não resolve.",
                     ),
                     "analysis": (
                         Analysis,
-                        "Explique a arquitetura observada e classifique a dificuldade desta issue para novos contribuidores.",
+                        "Analise esta issue de forma pontual. Em architecture, descreva tecnologias e seus papéis, "
+                        "o fluxo afetado e até 3 cenários de teste sugeridos (entrada → ação → resultado esperado). "
+                        "Em required_knowledge, liste tecnologias e habilidades específicas necessárias. "
+                        "Justifique a dificuldade pelo alcance observado; não estime complexidade de código que não recebeu.",
                     ),
                     "repository": (
                         RepositoryOverview,
-                        "Apresente o propósito, as tecnologias e a arquitetura observada do repositório. Sugira uma sequência de leitura e primeiros passos para aprender o projeto a partir da documentação. Nenhuma issue foi fornecida: não invente bugs, tarefas solicitadas ou oportunidades confirmadas pelos mantenedores.",
+                        "Apresente propósito e tecnologias do repositório com objetividade. Em technologies, indique "
+                        "nome, papel e arquivo de evidência. Em architecture, mostre até 2 fluxos concretos com setas "
+                        "e os componentes envolvidos. Em next_steps, inclua uma sequência curta de leitura e 3 "
+                        "cenários de teste sugeridos no formato entrada → ação → resultado esperado. "
+                        "Nenhuma issue foi fornecida: não invente bugs ou tarefas aprovadas pelos mantenedores.",
                     ),
                 }
                 schema, task = tasks[mode]
