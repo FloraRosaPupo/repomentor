@@ -314,4 +314,39 @@ describe("RepoMentor flow", () => {
     resolve(analysis);
     await screen.findByText("Investigue a documentação.");
   });
+
+  it("toggles theme between light and dark and persists to localStorage", async () => {
+    render(<App />);
+    const themeBtn = screen.getByRole("button", { name: "Alternar tema claro/escuro" });
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+
+    // Click to switch to dark
+    fireEvent.click(themeBtn);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    expect(localStorage.getItem("repomentor.theme.v1")).toBe("dark");
+
+    // Click to switch back to light
+    fireEvent.click(themeBtn);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+    expect(localStorage.getItem("repomentor.theme.v1")).toBe("light");
+  });
+
+  it("toggles language between Portuguese and English and persists to localStorage", async () => {
+    render(<App />);
+    const langBtn = screen.getByRole("button", { name: "Alternar idioma português/inglês" });
+    expect(document.documentElement.getAttribute("lang")).toBe("pt-BR");
+    expect(screen.getByText("SEU PRIMEIRO PASSO NO OPEN SOURCE")).toBeInTheDocument();
+
+    // Click to switch to English
+    fireEvent.click(langBtn);
+    expect(document.documentElement.getAttribute("lang")).toBe("en");
+    expect(localStorage.getItem("repomentor.lang.v1")).toBe("en");
+    expect(screen.getByText("YOUR FIRST STEP INTO OPEN SOURCE")).toBeInTheDocument();
+
+    // Click to switch back to Portuguese
+    fireEvent.click(langBtn);
+    expect(document.documentElement.getAttribute("lang")).toBe("pt-BR");
+    expect(localStorage.getItem("repomentor.lang.v1")).toBe("pt");
+    expect(screen.getByText("SEU PRIMEIRO PASSO NO OPEN SOURCE")).toBeInTheDocument();
+  });
 });

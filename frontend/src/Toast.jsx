@@ -1,4 +1,9 @@
-export default function Toast({ message, onClose }) {
+export default function Toast({
+  message,
+  onClose,
+  title = "Não foi possível continuar",
+  closeAria = "Fechar notificação",
+}) {
   if (!message) return null;
   return (
     <div className="toast" key={message}>
@@ -6,13 +11,13 @@ export default function Toast({ message, onClose }) {
         !
       </span>
       <div className="toast-content" role="alert" aria-atomic="true">
-        <strong>Não foi possível continuar</strong>
+        <strong>{title}</strong>
         <p>{message}</p>
       </div>
       <button
         className="toast-close"
         type="button"
-        aria-label="Fechar notificação"
+        aria-label={closeAria}
         onClick={onClose}
       >
         ×
