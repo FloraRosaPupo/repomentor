@@ -2,17 +2,19 @@
 
 Encontre sua primeira contribuição open source com contexto, evidências e um caminho para começar.
 
-**Status: planejamento do MVP. Ainda não há aplicação executável, integração validada ou infraestrutura provisionada.**
+**Status: prévia local implementada. React e FastAPI executam; issues reais são consultadas. O adaptador Gemma 4/Vertex AI está implementado e testado com transporte simulado, mas a inferência real aguarda projeto, região e endpoint configurados.**
 
 ## A ideia
 
-O RepoMentor ajudará desenvolvedores a compreender issues e a começar a contribuir com projetos open source. O MVP será dedicado ao [Meteor](https://github.com/meteor/meteor): analisará documentação, estrutura do código e issues abertas para recomendar oportunidades e produzir um guia de contribuição.
+O RepoMentor ajuda desenvolvedores a explorar issues e a começar a contribuir com projetos open source. Cadastre qualquer repositório público do GitHub pela URL ou por `organização/repositório`. A interface consulta issues reais e permite solicitar análise e guia de contribuição quando o Gemma estiver configurado.
 
-O Gemma 4 explicará a arquitetura, avaliará a dificuldade das issues e sugerirá áreas para investigar. Cada recomendação deverá apresentar evidências e distinguir fatos de hipóteses. Caminhos sugeridos serão conferidos contra os arquivos coletados.
+Os repositórios cadastrados ficam salvos neste navegador, sem conta ou sincronização entre pessoas. First Contributions, freeCodeCamp e VS Code aparecem como sugestões por perfil, não como ranking. O Meteor permanece um exemplo possível, não um alvo fixo.
+
+O adaptador do Gemma 4 solicita explicações de arquitetura, dificuldade e áreas para investigar. Respostas são validadas com Pydantic e caminhos sem comprovação são removidos. Recomendações exigem revisão humana; testes simulados não comprovam qualidade do modelo.
 
 ## Fluxo planejado
 
-1. Consultar dados reais e issues abertas de `meteor/meteor`.
+1. Cadastrar ou selecionar um repositório público e consultar suas issues abertas.
 2. Selecionar documentação e arquivos relevantes, com limites de tamanho.
 3. Enviar o contexto ao Gemma 4 no Google Cloud.
 4. Validar a resposta e os caminhos citados.
@@ -20,7 +22,7 @@ O Gemma 4 explicará a arquitetura, avaliará a dificuldade das issues e sugerir
 
 ## Stack escolhida
 
-| Camada | Tecnologia planejada |
+| Camada | Tecnologia |
 | --- | --- |
 | Interface | React, Vite, JavaScript/JSX e CSS |
 | Backend | Python 3.12+, FastAPI, Pydantic e HTTPX |
@@ -30,11 +32,11 @@ O Gemma 4 explicará a arquitetura, avaliará a dificuldade das issues e sugerir
 
 A variante inicial candidata é Gemma 4 26B A4B. A seleção final depende de uma chamada real, qualidade, latência, região, quotas e orçamento. Modelo e endpoint serão configuráveis. Não haverá substituição silenciosa por Gemini ou outro modelo.
 
-O processamento será em nuvem: o contexto público selecionado do Meteor será enviado ao Google Cloud. Credenciais ficarão exclusivamente no backend.
+O processamento será em nuvem: o contexto público selecionado do repositório será enviado ao Google Cloud. Credenciais ficam exclusivamente no backend.
 
 ## Escopo
 
-O MVP inclui análise arquitetural, classificação explicada de issues, verificação de referências e guias de contribuição. Repositórios genéricos, login, execução de código, edição de arquivos e abertura automática de PRs ficam fora da primeira versão.
+O MVP inclui cadastro local de repositórios públicos, consulta de issues, análise arquitetural, classificação explicada, verificação de referências e guias de contribuição. Login, sincronização de cadastros, repositórios privados, execução de código, edição de arquivos e abertura automática de PRs ficam fora da primeira versão. A coleta genérica é heurística e precisa ser avaliada em cada stack.
 
 ## Documentação
 
@@ -42,18 +44,79 @@ O MVP inclui análise arquitetural, classificação explicada de issues, verific
 - [Decisão Google Cloud + Gemma 4](docs/GOOGLE_CLOUD.md)
 - [Plano de testes e aceite](docs/TEST_PLAN.md)
 - [Registro de experimentos](docs/GEMMA_EXPERIMENTS.md)
+- [Contrato da API e limites](docs/API.md)
+- [Validação desta implementação](docs/VALIDATION.md)
+- [Como contribuir](CONTRIBUTING.md)
+
+## Executar localmente
+
+Requisitos: Python 3.13 e Node.js 22.13+ (ou Node 24). Os exemplos abaixo usam PowerShell, a partir da raiz do repositório.
+
+```powershell
+python -m venv backend/.venv
+.\backend\.venv\Scripts\python.exe -m pip install -r backend/requirements-lock.txt
+cd frontend
+npm ci
+cd ..
+Copy-Item .env.example .env
+```
+
+Não sobrescreva um `.env` existente. Para listar issues, não é necessário configurar o Google Cloud. `GITHUB_TOKEN` é opcional e aumenta o limite de consultas; mantenha-o somente no backend.
+
+Terminal 1 — backend:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+Terminal 2 — frontend:
+
+```powershell
+cd frontend
+npm run dev
+```
+
+Acesse **http://127.0.0.1:5174**. Documentação da API: **http://127.0.0.1:8000/docs**. O proxy do Vite encaminha `/api` para o backend; nenhum token do provedor é enviado ao navegador.
+
+No Linux/macOS, use `python3` e `backend/.venv/bin/python` nos comandos equivalentes.
+
+## Habilitar Gemma 4
+
+1. Implante uma variante Gemma 4 em um endpoint Vertex AI compatível com Chat Completions, pelo Model Garden. Esta aplicação não cria infraestrutura automaticamente.
+2. Preencha no `.env`: `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `VERTEX_AI_ENDPOINT_ID` e o identificador exato em `GEMMA_MODEL_ID`.
+3. Se o endpoint for dedicado, preencha `VERTEX_AI_ENDPOINT_HOST` com seu `dedicatedEndpointDns`, sem protocolo ou caminho.
+4. Autentique o desenvolvimento com `gcloud auth application-default login`. No Windows, use `gcloud.cmd` caso o PowerShell bloqueie o script `.ps1`.
+5. Garanta a permissão `aiplatform.endpoints.predict` e reinicie o backend.
+
+Não confunda `configured=true` com conexão validada. A primeira análise real confirmará autenticação, contrato e modelo implantado. Não há fallback para Gemini, Ollama ou resultados fictícios.
+
+## Qualidade
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m ruff format --check .
+.\.venv\Scripts\python.exe -m pytest -q
+cd ../frontend
+npm run lint
+npm test
+npm run build
+```
+
+A CI executa essas verificações em pull requests e na `main`, sem credenciais reais.
 
 ## Próximas entregas
 
 - [x] Criar a base documental do repositório.
-- [ ] Inicializar frontend e backend com endpoint de saúde.
+- [x] Inicializar frontend e backend com endpoint de saúde.
 - [ ] Validar acesso ao Gemma 4 no Google Cloud.
-- [ ] Consultar issues e contexto reais do Meteor.
-- [ ] Implementar análise com evidências e guia de contribuição.
+- [x] Implementar cadastro local, consulta de issues e coleta de contexto de repositórios públicos.
+- [x] Implementar análise com evidências e guia de contribuição (integração real pendente).
 - [ ] Executar testes e revisar pelo menos três issues reais.
 - [ ] Gravar demonstração e preparar a primeira release.
 
-Os comandos de instalação serão adicionados quando existir código executável. Nenhum teste de aplicação foi executado nesta etapa documental.
+Nesta prévia, a análise é por issue selecionada; classificação em lote fica para depois. Backend local, sem autenticação de usuários ou proteção distribuída contra abuso: não expor diretamente na internet.
 
 ## Participação no evento
 
