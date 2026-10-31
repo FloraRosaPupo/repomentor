@@ -68,6 +68,33 @@ async function choose() {
 }
 
 describe("RepoMentor flow", () => {
+  it("sends the selected language and clears prior results", async () => {
+    await choose();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Analisar com Gemma ↗" }),
+    );
+    await screen.findByText("Investigue a documentação.");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Alternar idioma português/inglês" }),
+    );
+    expect(
+      screen.queryByText("Investigue a documentação."),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Analisar com Gemma ↗" }),
+    );
+    await screen.findByText("Investigue a documentação.");
+    expect(api).toHaveBeenLastCalledWith(
+      "/analyze",
+      expect.objectContaining({
+        body: JSON.stringify({
+          repository: "meteor/meteor",
+          issue_number: 42,
+          language: "en",
+        }),
+      }),
+    );
+  });
   it.each([
     ["empty", "Sem issues abertas. O projeto continua disponível."],
     ["disabled", "As issues estão desativadas neste projeto."],
@@ -142,7 +169,7 @@ describe("RepoMentor flow", () => {
     expect(api).toHaveBeenCalledWith(
       "/repository/analyze",
       expect.objectContaining({
-        body: JSON.stringify({ repository: "owner/repo" }),
+        body: JSON.stringify({ repository: "owner/repo", language: "pt" }),
       }),
     );
     expect(
@@ -232,7 +259,11 @@ describe("RepoMentor flow", () => {
     expect(api).toHaveBeenCalledWith(
       "/analyze",
       expect.objectContaining({
-        body: JSON.stringify({ repository: "meteor/meteor", issue_number: 42 }),
+        body: JSON.stringify({
+          repository: "meteor/meteor",
+          issue_number: 42,
+          language: "pt",
+        }),
       }),
     );
   });
@@ -317,7 +348,9 @@ describe("RepoMentor flow", () => {
 
   it("toggles theme between light and dark and persists to localStorage", async () => {
     render(<App />);
-    const themeBtn = screen.getByRole("button", { name: "Alternar tema claro/escuro" });
+    const themeBtn = screen.getByRole("button", {
+      name: "Alternar tema claro/escuro",
+    });
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
 
     // Click to switch to dark
@@ -333,20 +366,28 @@ describe("RepoMentor flow", () => {
 
   it("toggles language between Portuguese and English and persists to localStorage", async () => {
     render(<App />);
-    const langBtn = screen.getByRole("button", { name: "Alternar idioma português/inglês" });
+    const langBtn = screen.getByRole("button", {
+      name: "Alternar idioma português/inglês",
+    });
     expect(document.documentElement.getAttribute("lang")).toBe("pt-BR");
-    expect(screen.getByText("SEU PRIMEIRO PASSO NO OPEN SOURCE")).toBeInTheDocument();
+    expect(
+      screen.getByText("SEU PRIMEIRO PASSO NO OPEN SOURCE"),
+    ).toBeInTheDocument();
 
     // Click to switch to English
     fireEvent.click(langBtn);
     expect(document.documentElement.getAttribute("lang")).toBe("en");
     expect(localStorage.getItem("repomentor.lang.v1")).toBe("en");
-    expect(screen.getByText("YOUR FIRST STEP INTO OPEN SOURCE")).toBeInTheDocument();
+    expect(
+      screen.getByText("YOUR FIRST STEP INTO OPEN SOURCE"),
+    ).toBeInTheDocument();
 
     // Click to switch back to Portuguese
     fireEvent.click(langBtn);
     expect(document.documentElement.getAttribute("lang")).toBe("pt-BR");
     expect(localStorage.getItem("repomentor.lang.v1")).toBe("pt");
-    expect(screen.getByText("SEU PRIMEIRO PASSO NO OPEN SOURCE")).toBeInTheDocument();
+    expect(
+      screen.getByText("SEU PRIMEIRO PASSO NO OPEN SOURCE"),
+    ).toBeInTheDocument();
   });
 });

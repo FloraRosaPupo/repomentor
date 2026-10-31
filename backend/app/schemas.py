@@ -38,6 +38,7 @@ class StrictModel(BaseModel):
 
 class RepositoryRequest(StrictModel):
     repository: RepositoryName
+    language: Literal["pt", "en"] = "pt"
 
 
 class AnalyzeRequest(RepositoryRequest):

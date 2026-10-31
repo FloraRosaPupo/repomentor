@@ -117,6 +117,36 @@ def client(upstream, config=None):
     )
 
 
+@pytest.mark.parametrize(
+    "endpoint,payload",
+    [
+        ("/api/analyze", ANALYSIS),
+        ("/api/issues/42/guide", GUIDE),
+        ("/api/repository/analyze", OVERVIEW),
+    ],
+)
+def test_language_is_passed_to_model_and_isolates_cache(endpoint, payload):
+    upstream = Upstream(payload=payload)
+    body = {"repository": "meteor/meteor"}
+    if endpoint == "/api/analyze":
+        body["issue_number"] = 42
+    with client(upstream) as app:
+        for language in ("pt", "en"):
+            response = app.post(endpoint, json={**body, "language": language})
+            assert response.status_code == 200
+            assert response.json()["metadata"]["language"] == language
+            assert response.json()["metadata"]["cached"] is False
+            cached = app.post(endpoint, json={**body, "language": language}).json()
+            assert cached["metadata"]["cached"] is True
+        assert app.post(endpoint, json={**body, "language": "invalid"}).status_code == 422
+    model_calls = [r for r in upstream.calls if r.url.host.endswith("googleapis.com")]
+    assert len(model_calls) == 2
+    assert (
+        "OUTPUT LANGUAGE: English" in json.loads(model_calls[1].content)["messages"][0]["content"]
+    )
+    assert "Context is limited" in " ".join(cached["result"]["limitations"])
+
+
 def test_health_is_not_a_claim_of_live_connectivity():
     with client(Upstream()) as app:
         status = app.get("/api/health").json()

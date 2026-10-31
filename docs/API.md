@@ -12,6 +12,12 @@ O MVP começa com análise de **uma issue por solicitação**, para limitar cons
 
 O número 42 é ilustrativo. Use um número retornado pela consulta real.
 
+Os três endpoints de geração aceitam `language: "pt" | "en"` no corpo (padrão `"pt"`).
+O idioma determina os textos gerados pelo Gemma e integra a chave do cache.
+`metadata.language` registra o idioma solicitado. Nomes de campos, enums, caminhos,
+comandos e nomes de tecnologias são preservados. Ao trocar o idioma na interface,
+os resultados anteriores são limpos; a próxima geração usa a nova seleção.
+
 A listagem inclui `issues_state`: `available`, `empty`, `disabled` ou `limited`. Uma busca limitada não comprova ausência de issues. Repositórios sem issues podem ser explorados e analisados; repositórios vazios ou sem contexto legível recebem uma explicação sem chamar o modelo.
 
 Análises contêm resumo, arquitetura, dificuldade, justificativa, conhecimentos necessários, evidências e limitações. Guias contêm passos sugeridos, estratégia de testes, perguntas para mantenedores, evidências e limitações.

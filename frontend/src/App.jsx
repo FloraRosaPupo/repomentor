@@ -288,8 +288,8 @@ export default function App() {
           ]),
           body: JSON.stringify(
             kind !== "analysis"
-              ? { repository }
-              : { repository, issue_number: selected.number },
+              ? { repository, language: lang }
+              : { repository, issue_number: selected.number, language: lang },
           ),
         },
       );
@@ -320,6 +320,10 @@ export default function App() {
   }
 
   function toggleLang() {
+    if (busy) return;
+    setAnalysis(null);
+    setGuide(null);
+    setOverview(null);
     setLang((prev) => (prev === "pt" ? "en" : "pt"));
   }
 
@@ -353,6 +357,7 @@ export default function App() {
             <button
               type="button"
               className="lang-toggle-btn"
+              disabled={!!busy}
               onClick={toggleLang}
               aria-label={t.langToggleAria}
               title={

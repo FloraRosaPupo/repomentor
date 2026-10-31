@@ -68,7 +68,7 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
     async def issues(repository: RepositoryName):
         return await GitHubService(app.state.http, repository, settings.github_token).issues()
 
-    async def run(repository: str, number: int | None, mode: str):
+    async def run(repository: str, number: int | None, mode: str, language: str):
         enabled = {
             "guide": settings.enable_contribution_guide,
             "analysis": settings.enable_architecture_analysis
@@ -93,11 +93,17 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
                 context = await GitHubService(
                     app.state.http, repository, settings.github_token
                 ).context(number)
+                if language == "en":
+                    context["limitations"] = [
+                        "Context is limited to 8 files and 36,000 characters; comments were not collected.",
+                        "File selection is heuristic; existing paths do not prove the cause of an issue.",
+                    ]
                 key = hashlib.sha256(
                     json.dumps(
                         [
                             context,
                             mode,
+                            language,
                             settings.gemma_model_id,
                             settings.endpoint_url,
                             PROMPT_VERSION,
@@ -136,7 +142,7 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
                     ),
                 }
                 schema, task = tasks[mode]
-                answer = await app.state.gemma.generate(context, schema, task)
+                answer = await app.state.gemma.generate(context, schema, task, language)
                 answer["issue"] = context["issue"]
                 answer["repository"] = repository
                 if settings.enable_cache:
@@ -155,15 +161,15 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
 
     @app.post("/api/analyze")
     async def analyze(body: AnalyzeRequest):
-        return await run(body.repository, body.issue_number, "analysis")
+        return await run(body.repository, body.issue_number, "analysis", body.language)
 
     @app.post("/api/repository/analyze")
     async def repository_overview(body: RepositoryRequest):
-        return await run(body.repository, None, "repository")
+        return await run(body.repository, None, "repository", body.language)
 
     @app.post("/api/issues/{issue_number}/guide")
     async def guide(body: RepositoryRequest, issue_number: int = Path(gt=0)):
-        return await run(body.repository, issue_number, "guide")
+        return await run(body.repository, issue_number, "guide", body.language)
 
     return app
 
