@@ -68,6 +68,15 @@ class Guide(StrictModel):
     limitations: list[str] = Field(min_length=1, max_length=15)
 
 
+class RepositoryOverview(StrictModel):
+    summary: str = Field(min_length=1, max_length=4000)
+    architecture: str = Field(min_length=1, max_length=4000)
+    technologies: list[str] = Field(max_length=15)
+    next_steps: list[str] = Field(min_length=1, max_length=12)
+    evidence: list[Evidence] = Field(max_length=15)
+    limitations: list[str] = Field(min_length=1, max_length=15)
+
+
 class ServiceError(Exception):
     def __init__(self, code: str, message: str, status: int = 502):
         self.code, self.message, self.status = code, message, status

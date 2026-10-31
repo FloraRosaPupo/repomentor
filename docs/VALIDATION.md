@@ -1,9 +1,9 @@
-# Validação — 31/10/2026
+﻿# Validação — 31/10/2026
 
 ## Executado nesta implementação
 
-- Backend: 32 testes Pytest aprovados, incluindo contratos, flags, ausência de configuração, exclusão de PRs, erros GitHub/Vertex AI, timeout, JSON inválido e truncado, cache e remoção de caminhos inventados. Inclui normalização de URLs, recusa de hosts externos e repositórios privados e isolamento entre repositórios.
-- Frontend: 10 testes Vitest/Testing Library aprovados, cobrindo consulta/seleção/análise, configuração ausente, busca, troca de issue, erro/retry e bloqueio durante geração. Inclui cadastro local, remoção dos salvos, seleção de sugestões e limpeza de resultados ao trocar de repositório.
+- Backend: 40 testes Pytest aprovados, incluindo contratos, flags, ausência de configuração, exclusão de PRs, erros GitHub/Vertex AI, timeout, JSON inválido e truncado, cache e remoção de caminhos inventados. Inclui normalização de URLs, recusa de hosts externos e repositórios privados, isolamento entre repositórios, estados sem issues e visão geral sem issue.
+- Frontend: 15 testes Vitest/Testing Library aprovados, cobrindo consulta/seleção/análise, configuração ausente, busca, troca de issue, erro/retry e bloqueio durante geração. Inclui cadastro local, remoção dos salvos, seleção de sugestões, limpeza de resultados ao trocar de repositório, estados sem issues e visão geral.
 - Ruff e ESLint aprovados; build Vite concluído.
 - Backend iniciado em `127.0.0.1:8000`; `/api/health` retornou HTTP 200 com configuração do Gemma ausente.
 - `/api/issues` consultou o GitHub real e retornou 30 issues abertas do Meteor.
@@ -27,3 +27,4 @@
 - [ ] Validar contraste, foco, teclado e layout em desktop e celular.
 - [ ] Medir latência e consumo reais.
 - [ ] Preparar implantação com autenticação e proteção contra abuso antes de exposição pública.
+

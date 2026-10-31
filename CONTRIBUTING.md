@@ -1,5 +1,7 @@
 # Contribuindo
 
+Observe o [Código de Conduta](CODE_OF_CONDUCT.md). Para bugs e propostas, use os templates de issues com passos de reprodução ou critérios de aceite.
+
 Crie uma branch por alteração e abra uma pull request para `main`. Explique o comportamento final, as verificações executadas e as limitações. Evite misturar refatorações sem relação com a tarefa.
 
 Antes de enviar, execute lint, testes e build conforme o README. A CI não depende de credenciais: integrações externas são substituídas por transportes controlados apenas nos testes. Uma integração real deve ser registrada separadamente.

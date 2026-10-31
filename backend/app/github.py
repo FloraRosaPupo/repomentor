@@ -40,6 +40,12 @@ class GitHubService:
                 "Repositório, issue ou arquivo não encontrado. Confira a URL e o acesso público.",
                 404,
             )
+        if response.status_code == 409 and path.startswith("/commits/"):
+            raise ServiceError(
+                "empty_repository",
+                "Este repositório ainda não possui um commit para analisar. Adicione um README ou código e tente novamente.",
+                422,
+            )
         if response.status_code != 200:
             raise ServiceError("github_error", "O GitHub não concluiu a consulta.", 502)
         try:
@@ -68,35 +74,51 @@ class GitHubService:
     async def issues(self):
         repo = await self.public_metadata()
         found = []
+        exhausted = False
+        enabled = repo.get("has_issues", True)
         # Bounded pagination, not a claim to list every issue in the repository.
-        for page in range(1, 4):
+        for page in range(1, 4) if enabled else []:
             rows = await self.get(
                 "/issues", {"state": "open", "sort": "updated", "per_page": 30, "page": page}
             )
             found.extend(self.issue_data(row) for row in rows if "pull_request" not in row)
+            exhausted = len(rows) < 30
             if len(found) >= 30 or len(rows) < 30:
                 break
         return {
             "repository": self.repository,
             "issues": found[:30],
             "limit": 30,
+            "issues_state": (
+                "disabled"
+                if not enabled
+                else "available"
+                if found
+                else "empty"
+                if exhausted
+                else "limited"
+            ),
+            "scan_complete": exhausted,
             "info": {
                 "description": repo.get("description"),
                 "stars": repo.get("stargazers_count", 0),
                 "language": repo.get("language"),
                 "archived": repo.get("archived", False),
                 "license": (repo.get("license") or {}).get("spdx_id"),
+                "has_issues": enabled,
             },
         }
 
-    async def context(self, number: int):
+    async def context(self, number: int | None = None):
         repo = await self.public_metadata()
-        raw = await self.get(f"/issues/{number}")
-        if "pull_request" in raw or raw.get("state") != "open":
-            raise ServiceError(
-                "invalid_issue", "Escolha uma issue aberta, não um pull request.", 422
-            )
-        issue = self.issue_data(raw)
+        issue = None
+        if number is not None:
+            raw = await self.get(f"/issues/{number}")
+            if "pull_request" in raw or raw.get("state") != "open":
+                raise ServiceError(
+                    "invalid_issue", "Escolha uma issue aberta, não um pull request.", 422
+                )
+            issue = self.issue_data(raw)
         commit = await self.get("/commits/" + quote(repo["default_branch"], safe=""))
         sha = commit["sha"]
         tree = await self.get(f"/git/trees/{sha}", {"recursive": "1"})
@@ -116,7 +138,12 @@ class GitHubService:
             "pom.xml",
             "Gemfile",
         ]
-        words = set(re.findall(r"[a-zA-Z][a-zA-Z0-9_-]{3,}", issue["title"].lower()))
+        words = set(
+            re.findall(
+                r"[a-zA-Z][a-zA-Z0-9_-]{3,}",
+                (issue["title"] if issue else repo.get("description") or "").lower(),
+            )
+        )
         candidates = sorted(
             (
                 path
@@ -165,6 +192,12 @@ class GitHubService:
         visible_paths = list(
             dict.fromkeys([doc["path"] for doc in documents] + sorted(directories)[:120])
         )
+        if not documents:
+            raise ServiceError(
+                "insufficient_context",
+                "Não encontramos documentação ou arquivos de texto compatíveis para analisar com segurança.",
+                422,
+            )
         return {
             "repository": self.repository,
             "commit": sha,

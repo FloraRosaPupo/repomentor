@@ -1,5 +1,11 @@
 export const translations = {
   pt: {
+    ariaOverview: "Visão geral do repositório",
+    overviewHeading: "Conheça o projeto por dentro",
+    overviewArchitecture: "Arquitetura e organização",
+    overviewSteps: "Primeiros passos para explorar",
+    overviewDisclaimer:
+      "Este é um roteiro de aprendizado, não uma lista de issues ou tarefas aprovadas pelos mantenedores.",
     // Top Skip Link & Navigation
     skipLink: "Ir para as issues",
     brandPreview: "PRÉVIA",
@@ -178,6 +184,12 @@ export const translations = {
     footerNote: "GitHub somente leitura · IA no Google Cloud",
   },
   en: {
+    ariaOverview: "Repository overview",
+    overviewHeading: "Get to know the project",
+    overviewArchitecture: "Architecture and organization",
+    overviewSteps: "First steps to explore",
+    overviewDisclaimer:
+      "This is a learning guide, not a list of issues or tasks approved by maintainers.",
     // Top Skip Link & Navigation
     skipLink: "Skip to issues",
     brandPreview: "PREVIEW",
@@ -225,9 +237,9 @@ export const translations = {
 
     // Connection status
     connectingBackend: "Connecting to backend…",
-    gemmaConfigured: "Gemma configured · connection will be verified upon analysis",
-    gemmaWaiting:
-      "Explore issues now. AI analysis awaits Gemma configuration.",
+    gemmaConfigured:
+      "Gemma configured · connection will be verified upon analysis",
+    gemmaWaiting: "Explore issues now. AI analysis awaits Gemma configuration.",
     howToEnable: "How to enable",
     howToEnableDesc:
       "Set in backend .env file: {missing}. Configure Google Cloud authentication and restart the backend. No secrets should be sent to the frontend.",

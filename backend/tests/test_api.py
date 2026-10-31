@@ -48,6 +48,14 @@ GUIDE = {
     "evidence": [],
     "limitations": ["Guia não executado."],
 }
+OVERVIEW = {
+    "summary": "Uma plataforma para aprender.",
+    "architecture": "A documentação está no README.",
+    "technologies": ["Markdown"],
+    "next_steps": ["Leia o README antes de propor uma alteração."],
+    "evidence": [{"path": "README.md", "reason": "Documentação fornecida."}],
+    "limitations": ["Nenhuma issue foi analisada."],
+}
 
 
 class Upstream:
@@ -344,3 +352,86 @@ def test_repository_selection_is_used_in_requests_evidence_and_cache():
     assert "/owner/two/blob/" in second["result"]["evidence"][0]["url"]
     assert second["issue"]["url"] == "https://github.com/owner/two/issues/42"
     assert len(upstream.predictions) == 2
+
+
+def test_no_open_issues_is_success_not_an_error():
+    upstream = Upstream()
+
+    def empty(request):
+        if request.url.path.endswith("/issues"):
+            return httpx.Response(200, json=[])
+        return upstream(request)
+
+    with client(empty) as app:
+        response = app.get("/api/issues", params={"repository": "owner/repo"})
+    assert response.status_code == 200
+    assert response.json()["issues_state"] == "empty"
+    assert response.json()["issues"] == []
+    assert response.json()["scan_complete"] is True
+
+
+def test_disabled_issues_do_not_call_github_issue_endpoint():
+    paths = []
+
+    def disabled(request):
+        paths.append(request.url.path)
+        return httpx.Response(200, json={"private": False, "has_issues": False})
+
+    with client(disabled) as app:
+        data = app.get("/api/issues", params={"repository": "owner/repo"}).json()
+    assert data["issues_state"] == "disabled"
+    assert paths == ["/repos/owner/repo"]
+
+
+def test_full_pages_of_prs_do_not_claim_there_are_no_issues():
+    upstream = Upstream()
+
+    def prs(request):
+        if request.url.path.endswith("/issues"):
+            return httpx.Response(200, json=[{**ISSUE, "pull_request": {}}] * 30)
+        return upstream(request)
+
+    with client(prs) as app:
+        data = app.get("/api/issues", params={"repository": "owner/repo"}).json()
+    assert data["issues_state"] == "limited"
+    assert data["scan_complete"] is False
+
+
+def test_repository_overview_does_not_require_an_issue_or_classification_flag():
+    upstream = Upstream(OVERVIEW)
+    with client(upstream, settings(enable_issue_classification=False)) as app:
+        response = app.post("/api/repository/analyze", json={"repository": "owner/repo"})
+    assert response.status_code == 200, response.text
+    assert response.json()["issue"] is None
+    assert response.json()["result"]["next_steps"] == OVERVIEW["next_steps"]
+    assert not any("/issues" in call.url.path for call in upstream.calls)
+    prompt = json.loads(upstream.predictions[0].content)["messages"][1]["content"]
+    assert json.loads(prompt)["untrusted_repository_context"]["issue"] is None
+
+
+def test_repository_overview_respects_architecture_flag():
+    upstream = Upstream(OVERVIEW)
+    with client(upstream, settings(enable_architecture_analysis=False)) as app:
+        response = app.post("/api/repository/analyze", json={"repository": "owner/repo"})
+    assert response.status_code == 409
+    assert not upstream.calls
+
+
+@pytest.mark.parametrize("mode", ["empty", "binary_only"])
+def test_repository_without_analyzable_content_never_calls_model(mode):
+    upstream = Upstream(OVERVIEW)
+
+    def no_content(request):
+        if "/commits/" in request.url.path and mode == "empty":
+            return httpx.Response(409, text="Git Repository is empty.")
+        if "/git/trees/" in request.url.path:
+            return httpx.Response(200, json={"tree": [{"path": "image.png", "type": "blob"}]})
+        return upstream(request)
+
+    with client(no_content) as app:
+        response = app.post("/api/repository/analyze", json={"repository": "owner/repo"})
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == (
+        "empty_repository" if mode == "empty" else "insufficient_context"
+    )
+    assert not upstream.predictions

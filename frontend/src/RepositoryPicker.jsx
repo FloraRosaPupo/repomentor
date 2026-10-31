@@ -20,7 +20,7 @@ function readSaved() {
   }
 }
 
-export default function RepositoryPicker({ onLoad, busy, t = translations.pt, lang = "pt" }) {
+export default function RepositoryPicker({ onLoad, busy, t = translations.pt }) {
   const [value, setValue] = useState("");
   const [saved, setSaved] = useState(readSaved);
   const [storageNotice, setStorageNotice] = useState("");

@@ -17,6 +17,7 @@ from .schemas import (
     AnalyzeRequest,
     Guide,
     RepositoryName,
+    RepositoryOverview,
     RepositoryRequest,
     ServiceError,
 )
@@ -51,11 +52,12 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
             "gemma": {
                 "configured": not settings.missing_configuration,
                 "missing": settings.missing_configuration,
-                "provider": "vertex-ai",
+                "provider": settings.gemma_provider,
                 "model": settings.gemma_model_id or None,
                 "connection_verified": False,
             },
             "features": {
+                "repository_overview": settings.enable_architecture_analysis,
                 "analysis": settings.enable_architecture_analysis
                 and settings.enable_issue_classification,
                 "guide": settings.enable_contribution_guide,
@@ -66,12 +68,13 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
     async def issues(repository: RepositoryName):
         return await GitHubService(app.state.http, repository, settings.github_token).issues()
 
-    async def run(repository: str, number: int, guide: bool):
-        enabled = (
-            settings.enable_contribution_guide
-            if guide
-            else (settings.enable_architecture_analysis and settings.enable_issue_classification)
-        )
+    async def run(repository: str, number: int | None, mode: str):
+        enabled = {
+            "guide": settings.enable_contribution_guide,
+            "analysis": settings.enable_architecture_analysis
+            and settings.enable_issue_classification,
+            "repository": settings.enable_architecture_analysis,
+        }[mode]
         if not enabled:
             raise ServiceError("feature_disabled", "Esta funcionalidade está desativada.", 409)
         if settings.missing_configuration:
@@ -94,7 +97,7 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
                     json.dumps(
                         [
                             context,
-                            guide,
+                            mode,
                             settings.gemma_model_id,
                             settings.endpoint_url,
                             PROMPT_VERSION,
@@ -107,12 +110,33 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
                     answer = copy.deepcopy(cache[key][1])
                     answer["metadata"]["cached"] = True
                     return answer
-                task = (
-                    "Gere um roteiro de investigação e contribuição, incluindo testes sugeridos e dúvidas para mantenedores."
-                    if guide
-                    else "Explique a arquitetura observada e classifique a dificuldade desta issue para novos contribuidores."
-                )
-                answer = await app.state.gemma.generate(context, Guide if guide else Analysis, task)
+                tasks = {
+                    "guide": (
+                        Guide,
+                        "Gere um guia pontual para esta issue. No summary, indique objetivo e tecnologias relevantes. "
+                        "Em steps, descreva o fluxo afetado (entrada → processamento → saída), arquivos para investigar "
+                        "e passos de contribuição em ordem. Em testing_strategy, proponha 3 a 5 cenários com entrada, "
+                        "ação e resultado esperado, incluindo sucesso, erro e limite; distinga existentes de sugeridos. "
+                        "Faça perguntas aos mantenedores somente para decisões que o contexto não resolve.",
+                    ),
+                    "analysis": (
+                        Analysis,
+                        "Analise esta issue de forma pontual. Em architecture, descreva tecnologias e seus papéis, "
+                        "o fluxo afetado e até 3 cenários de teste sugeridos (entrada → ação → resultado esperado). "
+                        "Em required_knowledge, liste tecnologias e habilidades específicas necessárias. "
+                        "Justifique a dificuldade pelo alcance observado; não estime complexidade de código que não recebeu.",
+                    ),
+                    "repository": (
+                        RepositoryOverview,
+                        "Apresente propósito e tecnologias do repositório com objetividade. Em technologies, indique "
+                        "nome, papel e arquivo de evidência. Em architecture, mostre até 2 fluxos concretos com setas "
+                        "e os componentes envolvidos. Em next_steps, inclua uma sequência curta de leitura e 3 "
+                        "cenários de teste sugeridos no formato entrada → ação → resultado esperado. "
+                        "Nenhuma issue foi fornecida: não invente bugs ou tarefas aprovadas pelos mantenedores.",
+                    ),
+                }
+                schema, task = tasks[mode]
+                answer = await app.state.gemma.generate(context, schema, task)
                 answer["issue"] = context["issue"]
                 answer["repository"] = repository
                 if settings.enable_cache:
@@ -131,11 +155,15 @@ def create_app(settings: Settings | None = None, transport=None, token_provider=
 
     @app.post("/api/analyze")
     async def analyze(body: AnalyzeRequest):
-        return await run(body.repository, body.issue_number, False)
+        return await run(body.repository, body.issue_number, "analysis")
+
+    @app.post("/api/repository/analyze")
+    async def repository_overview(body: RepositoryRequest):
+        return await run(body.repository, None, "repository")
 
     @app.post("/api/issues/{issue_number}/guide")
     async def guide(body: RepositoryRequest, issue_number: int = Path(gt=0)):
-        return await run(body.repository, issue_number, True)
+        return await run(body.repository, issue_number, "guide")
 
     return app
 

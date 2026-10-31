@@ -3,6 +3,7 @@ import { api } from "./api";
 import RepositoryPicker from "./RepositoryPicker";
 import Toast from "./Toast";
 import { translations } from "./i18n";
+import RepositoryEmptyState from "./RepositoryEmptyState";
 
 const THEME_STORAGE = "repomentor.theme.v1";
 const LANG_STORAGE = "repomentor.lang.v1";
@@ -27,22 +28,48 @@ function Evidence({ items, t }) {
   );
 }
 
-function Result({ value, guide = false, t }) {
+function Result({ value, guide = false, overview = false, t }) {
   const result = value.result;
-  const difficultyLabel =
-    t.difficulty[result.difficulty] || result.difficulty;
+  const difficultyLabel = t.difficulty[result.difficulty] || result.difficulty;
 
   return (
     <article
       className="result"
-      aria-label={guide ? t.ariaGuide : t.ariaAnalysis}
+      aria-label={
+        overview ? t.ariaOverview : guide ? t.ariaGuide : t.ariaAnalysis
+      }
     >
       <div className="section-heading">
-        <h3>{guide ? t.guideHeading : t.analysisHeading}</h3>
-        {!guide && <span className="badge">{difficultyLabel}</span>}
+        <h3>
+          {overview
+            ? t.overviewHeading
+            : guide
+              ? t.guideHeading
+              : t.analysisHeading}
+        </h3>
+        {!guide && !overview && (
+          <span className="badge">{difficultyLabel}</span>
+        )}
       </div>
       <p>{result.summary}</p>
-      {guide ? (
+      {overview ? (
+        <>
+          <h4>{t.overviewArchitecture}</h4>
+          <p>{result.architecture}</p>
+          <div className="tags">
+            {result.technologies.map((name) => (
+              <span key={name}>{name}</span>
+            ))}
+          </div>
+          <h4>{t.overviewSteps}</h4>
+          <ol className="steps">
+            {result.next_steps.map((step, index) => (
+              <li key={index}>{step}</li>
+            ))}
+          </ol>
+          <p className="muted">{t.overviewDisclaimer}</p>
+        </>
+      ) : guide ? (
         <>
           <h4>{t.suggestedSteps}</h4>
           <ol className="steps">
@@ -147,6 +174,8 @@ export default function App() {
     return "pt";
   });
 
+  const [issuesState, setIssuesState] = useState(null);
+  const [overview, setOverview] = useState(null);
   const request = useRef(null);
   const t = translations[lang] || translations.pt;
 
@@ -162,7 +191,10 @@ export default function App() {
 
   // Apply html lang attribute and persist
   useEffect(() => {
-    document.documentElement.setAttribute("lang", lang === "en" ? "en" : "pt-BR");
+    document.documentElement.setAttribute(
+      "lang",
+      lang === "en" ? "en" : "pt-BR",
+    );
     try {
       localStorage.setItem(LANG_STORAGE, lang);
     } catch {
@@ -175,8 +207,7 @@ export default function App() {
     api("/health", { signal: controller.signal })
       .then(setHealth)
       .catch((err) => {
-        if (!controller.signal.aborted)
-          setError(err.message || t.errBackend);
+        if (!controller.signal.aborted) setError(err.message || t.errBackend);
       });
     return () => {
       controller.abort();
@@ -197,6 +228,8 @@ export default function App() {
     setLoaded(false);
     setRepository(null);
     setRepositoryInfo(null);
+    setIssuesState(null);
+    setOverview(null);
     setQuery("");
     try {
       const [status, data] = await Promise.all([
@@ -216,10 +249,12 @@ export default function App() {
       setGuide(null);
       setRepository(data.repository);
       setRepositoryInfo(data.info);
+      setIssuesState(
+        data.issues_state ?? (data.issues.length ? "available" : "empty"),
+      );
       return data;
     } catch (err) {
-      if (!controller.signal.aborted)
-        setError(err.message || t.errIssues);
+      if (!controller.signal.aborted) setError(err.message || t.errIssues);
     } finally {
       request.current = null;
       setBusy("");
@@ -227,14 +262,24 @@ export default function App() {
   }
 
   async function generate(kind) {
-    if (!selected || request.current) return;
+    if (!repository || (kind !== "repository" && !selected) || request.current)
+      return;
     const controller = new AbortController();
     request.current = controller;
     setBusy(kind);
     setError("");
+    if (kind === "repository") {
+      setSelected(null);
+      setAnalysis(null);
+      setGuide(null);
+    }
     try {
       const data = await api(
-        kind === "guide" ? `/issues/${selected.number}/guide` : "/analyze",
+        kind === "repository"
+          ? "/repository/analyze"
+          : kind === "guide"
+            ? `/issues/${selected.number}/guide`
+            : "/analyze",
         {
           method: "POST",
           signal: AbortSignal.any([
@@ -242,23 +287,20 @@ export default function App() {
             AbortSignal.timeout(250_000),
           ]),
           body: JSON.stringify(
-            kind === "guide"
+            kind !== "analysis"
               ? { repository }
               : { repository, issue_number: selected.number },
           ),
         },
       );
       if (!controller.signal.aborted) {
-        if (kind === "guide") setGuide(data);
+        if (kind === "repository") setOverview(data);
+        else if (kind === "guide") setGuide(data);
         else setAnalysis(data);
       }
     } catch (err) {
       if (!controller.signal.aborted)
-        setError(
-          err.name === "TimeoutError"
-            ? t.errTimeout
-            : err.message,
-        );
+        setError(err.name === "TimeoutError" ? t.errTimeout : err.message);
     } finally {
       request.current = null;
       setBusy("");
@@ -266,6 +308,7 @@ export default function App() {
   }
 
   function select(issue) {
+    setOverview(null);
     setSelected(issue);
     setAnalysis(null);
     setGuide(null);
@@ -312,7 +355,9 @@ export default function App() {
               className="lang-toggle-btn"
               onClick={toggleLang}
               aria-label={t.langToggleAria}
-              title={lang === "pt" ? "Switch to English" : "Mudar para Português"}
+              title={
+                lang === "pt" ? "Switch to English" : "Mudar para Português"
+              }
             >
               {lang === "pt" ? "🇧🇷 PT" : "🇺🇸 EN"}
             </button>
@@ -425,12 +470,7 @@ export default function App() {
               </button>
             )}
           </div>
-          <RepositoryPicker
-            onLoad={load}
-            busy={!!busy}
-            t={t}
-            lang={lang}
-          />
+          <RepositoryPicker onLoad={load} busy={!!busy} t={t} />
           {repository && (
             <div className="active-repository">
               <div>
@@ -446,9 +486,9 @@ export default function App() {
               <div className="repo-stats">
                 <span>
                   ☆{" "}
-                  {new Intl.NumberFormat(lang === "pt" ? "pt-BR" : "en-US").format(
-                    repositoryInfo?.stars ?? 0,
-                  )}{" "}
+                  {new Intl.NumberFormat(
+                    lang === "pt" ? "pt-BR" : "en-US",
+                  ).format(repositoryInfo?.stars ?? 0)}{" "}
                   {t.stars}
                 </span>
                 {repositoryInfo?.language && (
@@ -459,6 +499,24 @@ export default function App() {
                 )}
                 {repositoryInfo?.archived && <span>{t.archived}</span>}
               </div>
+            </div>
+          )}
+          {repository && (
+            <div className="repository-actions">
+              <button
+                className="primary"
+                onClick={() => generate("repository")}
+                disabled={
+                  !!busy || !configured || !health?.features.repository_overview
+                }
+              >
+                {busy === "repository"
+                  ? "Gemma está conhecendo o projeto…"
+                  : "Conhecer o repositório com Gemma"}
+              </button>
+              <span>
+                Arquitetura, tecnologias e primeiros passos — com ou sem issues.
+              </span>
             </div>
           )}
           <div className="connection">
@@ -495,11 +553,15 @@ export default function App() {
                   placeholder={t.searchPlaceholder}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  disabled={!loaded}
+                  disabled={!loaded || !issues.length}
                 />
               </label>
               <div className="issue-list">
-                {!loaded ? (
+                {busy === "issues" ? (
+                  <p className="empty-message" role="status">
+                    Carregando o repositório e consultando suas issues…
+                  </p>
+                ) : !loaded ? (
                   <div className="empty-list">
                     <span>⌘</span>
                     <h4>
@@ -513,9 +575,27 @@ export default function App() {
                     <p>{t.emptyListDesc}</p>
                   </div>
                 ) : !filtered.length ? (
-                  <p className="empty-message">
-                    {issues.length ? t.emptySearch : t.emptyNoIssues}
-                  </p>
+                  <div className="empty-message">
+                    {issues.length ? (
+                      <>
+                        <p>Nenhuma issue corresponde à busca.</p>
+                        <button
+                          className="secondary"
+                          onClick={() => setQuery("")}
+                        >
+                          Limpar busca
+                        </button>
+                      </>
+                    ) : (
+                      <p>
+                        {issuesState === "disabled"
+                          ? "As issues estão desativadas pelos mantenedores."
+                          : issuesState === "limited"
+                            ? "Nenhuma issue encontrada nas páginas consultadas."
+                            : "Nenhuma issue aberta no momento."}
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   filtered.map((issue) => (
                     <button
@@ -543,9 +623,23 @@ export default function App() {
             <div
               className="detail-panel"
               aria-live="polite"
-              aria-busy={busy === "analysis" || busy === "guide"}
+              aria-busy={!!busy && busy !== "issues"}
             >
-              {!selected ? (
+              {busy === "repository" && (
+                <p className="progress" role="status">
+                  Consultando a documentação e os arquivos do projeto. A análise
+                  não depende de issues e pode levar alguns minutos.
+                </p>
+              )}
+              {overview ? (
+                <Result value={overview} overview t={t} />
+              ) : !selected && loaded && !issues.length ? (
+                <RepositoryEmptyState
+                  repository={repository}
+                  state={issuesState}
+                  configured={configured}
+                />
+              ) : !selected ? (
                 <div className="empty-detail">
                   <div className="compass">✧</div>
                   <p className="eyebrow">{t.emptyDetailEyebrow}</p>
@@ -569,7 +663,10 @@ export default function App() {
                 <>
                   <div className="selected-heading">
                     <span className="eyebrow">
-                      {t.issueNumberEyebrow.replace("{number}", selected.number)}
+                      {t.issueNumberEyebrow.replace(
+                        "{number}",
+                        selected.number,
+                      )}
                     </span>
                     <a href={selected.url} target="_blank" rel="noreferrer">
                       {t.viewOnGithub}

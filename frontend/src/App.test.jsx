@@ -6,7 +6,7 @@ import { api } from "./api";
 vi.mock("./api", () => ({ api: vi.fn() }));
 const health = {
   gemma: { configured: true, missing: [] },
-  features: { analysis: true, guide: true },
+  features: { analysis: true, guide: true, repository_overview: true },
 };
 const issues = [
   {
@@ -68,6 +68,104 @@ async function choose() {
 }
 
 describe("RepoMentor flow", () => {
+  it.each([
+    ["empty", "Sem issues abertas. O projeto continua disponível."],
+    ["disabled", "As issues estão desativadas neste projeto."],
+    ["limited", "Nenhuma issue apareceu nesta amostra."],
+  ])(
+    "explains %s lists without blocking repository onboarding",
+    async (state, title) => {
+      api.mockImplementation(async (path) =>
+        path === "/health"
+          ? health
+          : { repository: "owner/repo", issues: [], issues_state: state },
+      );
+      render(<App />);
+      fireEvent.change(screen.getByLabelText("Repositório GitHub"), {
+        target: { value: "owner/repo" },
+      });
+      fireEvent.click(
+        screen.getByRole("button", { name: "Cadastrar e explorar ↗" }),
+      );
+      expect(
+        await screen.findByRole("heading", { name: title }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", {
+          name: "Conhecer o repositório com Gemma",
+        }),
+      ).toBeEnabled();
+      expect(
+        screen.getByRole("link", { name: "Explorar os arquivos ↗" }),
+      ).toHaveAttribute("href", "https://github.com/owner/repo");
+      expect(screen.getByRole("searchbox")).toBeDisabled();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    },
+  );
+
+  it("generates a repository overview without selecting or inventing an issue", async () => {
+    api.mockImplementation(async (path) => {
+      if (path === "/health") return health;
+      if (path.startsWith("/issues?"))
+        return { repository: "owner/repo", issues: [], issues_state: "empty" };
+      return {
+        repository: "owner/repo",
+        metadata: analysis.metadata,
+        result: {
+          summary: "Conheça este projeto.",
+          architecture: "README e módulos.",
+          technologies: ["Python"],
+          next_steps: ["Leia a documentação."],
+          evidence: [],
+          limitations: ["Sem revisão humana."],
+        },
+      };
+    });
+    render(<App />);
+    fireEvent.change(screen.getByLabelText("Repositório GitHub"), {
+      target: { value: "owner/repo" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cadastrar e explorar ↗" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Conhecer o repositório com Gemma",
+      }),
+    );
+    expect(
+      await screen.findByText("Conheça este projeto."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/roteiro de aprendizado, não uma lista de issues/),
+    ).toBeInTheDocument();
+    expect(api).toHaveBeenCalledWith(
+      "/repository/analyze",
+      expect.objectContaining({
+        body: JSON.stringify({ repository: "owner/repo" }),
+      }),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Analisar com Gemma ↗" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("allows clearing an unmatched search without claiming the repository is empty", async () => {
+    await choose();
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "no-match" },
+    });
+    expect(
+      screen.getByText("Nenhuma issue corresponde à busca."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Nenhuma issue aberta no momento."),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Limpar busca" }));
+    expect(
+      screen.getByRole("button", { name: /Build issue/ }),
+    ).toBeInTheDocument();
+  });
   it("saves a chosen repository locally and removes it from saved entries", async () => {
     await choose();
     await waitFor(() =>
