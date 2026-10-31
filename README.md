@@ -131,7 +131,9 @@ Hacktoberfest Hack Day São José dos Campos: A categoria pretendida é Best Use
 
 ## Authors
 
-- [Flora Rosa Pupo](https://github.com/FloraRosaPupo)
-- [Daniel Dias](https://github.com/Danieldpereira)
-- [Lucas Roberto](https://github.com/LucasR022)
-- [Ana Claudia](https://github.com/anacnogueira)
+| Integrante       | GitHub                                               |
+| ---------------- | ---------------------------------------------------- |
+| Ana Claudia    | [Ana Claudia Nogueira](https://github.com/anacnogueira)|
+| Daniel Dias      | [DanielDPereira](https://github.com/DanielDPereira) |
+| Flora Rosa Pupo | [Flora Rosa Pupo](https://github.com/florarosapupo)  |
+| Lucas Roberto   | [Lucas Roberto](https://github.com/LucasR022)       |
