@@ -1,5 +1,7 @@
 # RepoMentor — Implementation Plan
 
+> Atualização de escopo em 31/10/2026: a autora solicitou cadastro de qualquer repositório público do GitHub. Esta decisão substitui as restrições ao Meteor e a exclusão de repositórios genéricos neste plano original. A primeira implementação tem cadastro salvo no navegador, sugestões por perfil e análise por issue selecionada. Consulte [o contrato implementado](API.md) e [a validação](VALIDATION.md). As etapas e tarefas abaixo permanecem como referência do planejamento original, não como declaração de funcionalidades concluídas.
+
 **Versão:** 2.1
 **Status:** Plano de implementação do MVP
 **Categoria do hackathon:** Best Use of Gemma 4
