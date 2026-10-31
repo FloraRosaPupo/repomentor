@@ -2,15 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
 import RepositoryPicker from "./RepositoryPicker";
 import Toast from "./Toast";
+import { translations } from "./i18n";
 
-const difficulty = {
-  beginner: "Iniciante",
-  intermediate: "Intermediária",
-  advanced: "Avançada",
-  unclear: "Ainda incerta",
-};
+const THEME_STORAGE = "repomentor.theme.v1";
+const LANG_STORAGE = "repomentor.lang.v1";
 
-function Evidence({ items }) {
+function Evidence({ items, t }) {
   return (
     <div className="evidence-list">
       {items.length ? (
@@ -20,45 +17,40 @@ function Evidence({ items }) {
               {item.path} ↗
             </a>
             <p>{item.reason}</p>
-            <small>
-              Caminho verificado · relação com a issue é uma hipótese
-            </small>
+            <small>{t.verifiedPath}</small>
           </div>
         ))
       ) : (
-        <p className="muted">
-          Nenhum caminho foi comprovado no contexto consultado.
-        </p>
+        <p className="muted">{t.noEvidence}</p>
       )}
     </div>
   );
 }
 
-function Result({ value, guide = false }) {
+function Result({ value, guide = false, t }) {
   const result = value.result;
+  const difficultyLabel =
+    t.difficulty[result.difficulty] || result.difficulty;
+
   return (
     <article
       className="result"
-      aria-label={guide ? "Guia de contribuição" : "Análise da issue"}
+      aria-label={guide ? t.ariaGuide : t.ariaAnalysis}
     >
       <div className="section-heading">
-        <h3>
-          {guide ? "Seu caminho para contribuir" : "O que o Gemma encontrou"}
-        </h3>
-        {!guide && (
-          <span className="badge">{difficulty[result.difficulty]}</span>
-        )}
+        <h3>{guide ? t.guideHeading : t.analysisHeading}</h3>
+        {!guide && <span className="badge">{difficultyLabel}</span>}
       </div>
       <p>{result.summary}</p>
       {guide ? (
         <>
-          <h4>Passos sugeridos</h4>
+          <h4>{t.suggestedSteps}</h4>
           <ol className="steps">
             {result.steps.map((step, i) => (
               <li key={i}>{step}</li>
             ))}
           </ol>
-          <h4>Como verificar</h4>
+          <h4>{t.howToVerify}</h4>
           <ul>
             {result.testing_strategy.map((step, i) => (
               <li key={i}>{step}</li>
@@ -66,7 +58,7 @@ function Result({ value, guide = false }) {
           </ul>
           {!!result.questions_for_maintainers.length && (
             <>
-              <h4>Perguntas para os mantenedores</h4>
+              <h4>{t.maintainerQuestions}</h4>
               <ul>
                 {result.questions_for_maintainers.map((step, i) => (
                   <li key={i}>{step}</li>
@@ -77,9 +69,9 @@ function Result({ value, guide = false }) {
         </>
       ) : (
         <>
-          <h4>Contexto do projeto</h4>
+          <h4>{t.projectContext}</h4>
           <p>{result.architecture}</p>
-          <h4>Por que essa dificuldade?</h4>
+          <h4>{t.whyDifficulty}</h4>
           <p>{result.reasoning}</p>
           <div className="tags">
             {result.required_knowledge.map((tag) => (
@@ -88,29 +80,26 @@ function Result({ value, guide = false }) {
           </div>
         </>
       )}
-      <h4>Arquivos para investigar</h4>
-      <Evidence items={result.evidence} />
+      <h4>{t.filesToInvestigate}</h4>
+      <Evidence items={result.evidence} t={t} />
       <details className="limitations" open>
-        <summary>Limitações e revisão</summary>
+        <summary>{t.limitationsHeading}</summary>
         <ul>
           {result.limitations.map((item, i) => (
             <li key={i}>{item}</li>
           ))}
         </ul>
-        <p>
-          Orientação por IA, ainda sem revisão humana. Nenhum código ou teste do
-          repositório foi executado.
-        </p>
+        <p>{t.limitationsDisclaimer}</p>
       </details>
       <div className="result-meta">
         {value.metadata.model} · {(value.metadata.elapsed_ms / 1000).toFixed(1)}{" "}
-        s {value.metadata.cached ? "· resultado em cache" : ""}
+        s {value.metadata.cached ? `· ${t.cachedResult}` : ""}
         <a
           href={`https://github.com/${value.repository}/commit/${value.metadata.commit}`}
           target="_blank"
           rel="noreferrer"
         >
-          Contexto: {value.metadata.commit.slice(0, 7)} ↗
+          {t.contextCommit.replace("{hash}", value.metadata.commit.slice(0, 7))}
         </a>
       </div>
     </article>
@@ -129,7 +118,57 @@ export default function App() {
   const [guide, setGuide] = useState(null);
   const [repository, setRepository] = useState(null);
   const [repositoryInfo, setRepositoryInfo] = useState(null);
+
+  // Theme state: "light" or "dark"
+  const [theme, setTheme] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem(THEME_STORAGE);
+      if (savedTheme === "dark" || savedTheme === "light") return savedTheme;
+      if (
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-color-scheme: dark)").matches
+      ) {
+        return "dark";
+      }
+    } catch {
+      // ignore storage errors
+    }
+    return "light";
+  });
+
+  // Language state: "pt" or "en"
+  const [lang, setLang] = useState(() => {
+    try {
+      const savedLang = localStorage.getItem(LANG_STORAGE);
+      if (savedLang === "pt" || savedLang === "en") return savedLang;
+    } catch {
+      // ignore storage errors
+    }
+    return "pt";
+  });
+
   const request = useRef(null);
+  const t = translations[lang] || translations.pt;
+
+  // Apply data-theme attribute on document root
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem(THEME_STORAGE, theme);
+    } catch {
+      // ignore storage errors
+    }
+  }, [theme]);
+
+  // Apply html lang attribute and persist
+  useEffect(() => {
+    document.documentElement.setAttribute("lang", lang === "en" ? "en" : "pt-BR");
+    try {
+      localStorage.setItem(LANG_STORAGE, lang);
+    } catch {
+      // ignore storage errors
+    }
+  }, [lang]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -137,13 +176,13 @@ export default function App() {
       .then(setHealth)
       .catch((err) => {
         if (!controller.signal.aborted)
-          setError(err.message || "Não foi possível acessar o backend.");
+          setError(err.message || t.errBackend);
       });
     return () => {
       controller.abort();
       request.current?.abort();
     };
-  }, []);
+  }, [t.errBackend]);
 
   async function load(name = repository) {
     if (request.current) return;
@@ -180,7 +219,7 @@ export default function App() {
       return data;
     } catch (err) {
       if (!controller.signal.aborted)
-        setError(err.message || "Não foi possível carregar as issues.");
+        setError(err.message || t.errIssues);
     } finally {
       request.current = null;
       setBusy("");
@@ -217,7 +256,7 @@ export default function App() {
       if (!controller.signal.aborted)
         setError(
           err.name === "TimeoutError"
-            ? "A análise demorou além do limite. Tente novamente."
+            ? t.errTimeout
             : err.message,
         );
     } finally {
@@ -233,67 +272,88 @@ export default function App() {
     setError("");
   }
 
+  function toggleTheme() {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  }
+
+  function toggleLang() {
+    setLang((prev) => (prev === "pt" ? "en" : "pt"));
+  }
+
   const filtered = issues.filter((issue) =>
     `${issue.title} ${issue.number} ${issue.labels.join(" ")}`
       .toLowerCase()
       .includes(query.toLowerCase()),
   );
   const configured = health?.gemma.configured;
+
   return (
     <>
-      <Toast message={error} onClose={() => setError("")} />
+      <Toast
+        message={error}
+        onClose={() => setError("")}
+        title={t.toastErrorTitle}
+        closeAria={t.toastCloseAria}
+      />
       <a className="skip" href="#workspace">
-        Ir para as issues
+        {t.skipLink}
       </a>
       <header className="header">
         <a className="brand" href="/" aria-label="RepoMentor início">
           <span className="brand-mark">
             r<span>m</span>
           </span>
-          RepoMentor<span className="preview">PRÉVIA</span>
+          RepoMentor<span className="preview">{t.brandPreview}</span>
         </a>
         <nav aria-label="Principal">
+          <div className="header-controls">
+            <button
+              type="button"
+              className="lang-toggle-btn"
+              onClick={toggleLang}
+              aria-label={t.langToggleAria}
+              title={lang === "pt" ? "Switch to English" : "Mudar para Português"}
+            >
+              {lang === "pt" ? "🇧🇷 PT" : "🇺🇸 EN"}
+            </button>
+          </div>
           <a
             href="https://github.com/FloraRosaPupo/repomentor"
             target="_blank"
             rel="noreferrer"
           >
-            O projeto ↗
+            {t.projectLink}
           </a>
-          <span className="provider">
-            GEMMA 4 <span>×</span> GOOGLE CLOUD
-          </span>
+          <span className="provider">{t.provider}</span>
         </nav>
       </header>
       <main>
         <section className="hero">
           <div className="hero-copy">
             <p className="eyebrow">
-              <span /> SEU PRIMEIRO PASSO NO OPEN SOURCE
+              <span /> {t.heroEyebrow}
             </p>
             <h1>
-              Grandes projetos.
+              {t.heroTitle1}
               <br />
-              Um começo <em>possível.</em>
+              {t.heroTitle2}
+              <em>{t.heroTitleEm}</em>
             </h1>
-            <p className="intro">
-              Entenda uma issue, descubra onde investigar e encontre seu caminho
-              para contribuir. Com contexto, não só uma lista de tarefas.
-            </p>
+            <p className="intro">{t.heroIntro}</p>
             <a className="hero-link" href="#workspace">
-              Explore as oportunidades <span>↓</span>
+              {t.heroExploreLink} <span>↓</span>
             </a>
           </div>
           <div className="map-card" aria-hidden="true">
             <div className="map-top">
               <span className="tiny-dots">● ● ●</span>
-              <span>SEU MAPA DE CONTRIBUIÇÃO</span>
+              <span>{t.mapTitle}</span>
             </div>
             <div className="map-repo">
               <span className="meteor-icon">↗</span>
               <div>
-                <strong>{repository || "seu próximo projeto"}</strong>
-                <small>Um universo para explorar</small>
+                <strong>{repository || t.mapDefaultRepo}</strong>
+                <small>{t.mapUniverse}</small>
               </div>
               <span className="map-star">✦</span>
             </div>
@@ -301,39 +361,40 @@ export default function App() {
               <div>
                 <b>01</b>
                 <span>
-                  Entenda o contexto<small>Arquitetura + documentação</small>
+                  {t.mapStep1Title}
+                  <small>{t.mapStep1Sub}</small>
                 </span>
                 <span>✓</span>
               </div>
               <div>
                 <b>02</b>
                 <span>
-                  Encontre uma issue<small>Dificuldade + evidências</small>
+                  {t.mapStep2Title}
+                  <small>{t.mapStep2Sub}</small>
                 </span>
                 <span>✓</span>
               </div>
               <div className="map-last">
                 <b>03</b>
                 <span>
-                  Construa seu caminho<small>Um guia para começar</small>
+                  {t.mapStep3Title}
+                  <small>{t.mapStep3Sub}</small>
                 </span>
                 <span>↗</span>
               </div>
             </div>
-            <p className="map-note">
-              Menos “por onde começo?”. Mais contribuição.
-            </p>
+            <p className="map-note">{t.mapNote}</p>
           </div>
         </section>
         <div className="principles">
           <span>
-            <b>01</b> Dados reais do GitHub
+            <b>01</b> {t.principle1}
           </span>
           <span>
-            <b>02</b> Evidências verificáveis
+            <b>02</b> {t.principle2}
           </span>
           <span>
-            <b>03</b> Você no controle
+            <b>03</b> {t.principle3}
           </span>
         </div>
         <section
@@ -343,14 +404,12 @@ export default function App() {
         >
           <div className="workspace-heading">
             <div>
-              <p className="eyebrow">REPOSITÓRIO EM FOCO</p>
+              <p className="eyebrow">{t.workspaceEyebrow}</p>
               <h2 id="workspace-title">
-                Encontre seu projeto<span>.</span>
+                {t.workspaceTitle}
+                <span>.</span>
               </h2>
-              <p className="muted">
-                Até 30 issues abertas, ordenadas por atualização. A análise
-                acontece quando você escolher.
-              </p>
+              <p className="muted">{t.workspaceSubtitle}</p>
             </div>
             {loaded && (
               <button
@@ -359,14 +418,19 @@ export default function App() {
                 disabled={!!busy}
               >
                 {busy === "issues"
-                  ? "Buscando no GitHub…"
+                  ? t.btnFetching
                   : loaded
-                    ? "Atualizar issues ↻"
-                    : "Carregar issues ↗"}
+                    ? t.btnRefreshIssues
+                    : t.btnLoadIssues}
               </button>
             )}
           </div>
-          <RepositoryPicker onLoad={load} busy={!!busy} />
+          <RepositoryPicker
+            onLoad={load}
+            busy={!!busy}
+            t={t}
+            lang={lang}
+          />
           {repository && (
             <div className="active-repository">
               <div>
@@ -382,10 +446,10 @@ export default function App() {
               <div className="repo-stats">
                 <span>
                   ☆{" "}
-                  {new Intl.NumberFormat("pt-BR").format(
+                  {new Intl.NumberFormat(lang === "pt" ? "pt-BR" : "en-US").format(
                     repositoryInfo?.stars ?? 0,
                   )}{" "}
-                  estrelas
+                  {t.stars}
                 </span>
                 {repositoryInfo?.language && (
                   <span>{repositoryInfo.language}</span>
@@ -393,7 +457,7 @@ export default function App() {
                 {repositoryInfo?.license && (
                   <span>{repositoryInfo.license}</span>
                 )}
-                {repositoryInfo?.archived && <span>Arquivado</span>}
+                {repositoryInfo?.archived && <span>{t.archived}</span>}
               </div>
             </div>
           )}
@@ -401,19 +465,19 @@ export default function App() {
             <span className={`status-dot ${configured ? "ready" : ""}`} />
             <span>
               {!health
-                ? "Conectando ao backend…"
+                ? t.connectingBackend
                 : configured
-                  ? "Gemma configurado · conexão será verificada ao analisar"
-                  : "Explore as issues agora. A análise por IA aguarda a configuração do Gemma."}
+                  ? t.gemmaConfigured
+                  : t.gemmaWaiting}
             </span>
             {health && !configured && (
               <details>
-                <summary>Como habilitar</summary>
+                <summary>{t.howToEnable}</summary>
                 <p>
-                  Preencha no arquivo .env do backend:{" "}
-                  {health.gemma.missing.join(", ")}. Configure a autenticação
-                  Google Cloud e reinicie o backend. Nenhum segredo deve ir para
-                  o frontend.
+                  {t.howToEnableDesc.replace(
+                    "{missing}",
+                    health.gemma.missing.join(", "),
+                  )}
                 </p>
               </details>
             )}
@@ -421,14 +485,14 @@ export default function App() {
           <div className="work-grid">
             <aside className="issue-panel" aria-label="Issues abertas">
               <div className="panel-heading">
-                <h3>Oportunidades</h3>
+                <h3>{t.opportunities}</h3>
                 <span className="count">{loaded ? filtered.length : "—"}</span>
               </div>
               <label className="search">
-                <span>Buscar por título, número ou label</span>
+                <span>{t.searchLabel}</span>
                 <input
                   type="search"
-                  placeholder="Busque seu próximo desafio…"
+                  placeholder={t.searchPlaceholder}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   disabled={!loaded}
@@ -439,20 +503,18 @@ export default function App() {
                   <div className="empty-list">
                     <span>⌘</span>
                     <h4>
-                      Uma contribuição começa
-                      <br />
-                      com uma boa pergunta.
+                      {t.emptyListTitle.split("\n").map((line, i) => (
+                        <span key={i}>
+                          {line}
+                          {i === 0 && <br />}
+                        </span>
+                      ))}
                     </h4>
-                    <p>
-                      Cadastre um repositório ou escolha uma sugestão para
-                      carregar as issues.
-                    </p>
+                    <p>{t.emptyListDesc}</p>
                   </div>
                 ) : !filtered.length ? (
                   <p className="empty-message">
-                    {issues.length
-                      ? "Nenhuma issue corresponde à busca."
-                      : "Nenhuma issue aberta foi encontrada nesta consulta."}
+                    {issues.length ? t.emptySearch : t.emptyNoIssues}
                   </p>
                 ) : (
                   filtered.map((issue) => (
@@ -471,7 +533,7 @@ export default function App() {
                         ))}
                       </span>
                       <span className="issue-action">
-                        Explorar issue <span>→</span>
+                        {t.exploreIssueAction} <span>→</span>
                       </span>
                     </button>
                   ))
@@ -486,38 +548,37 @@ export default function App() {
               {!selected ? (
                 <div className="empty-detail">
                   <div className="compass">✧</div>
-                  <p className="eyebrow">DO CONTEXTO À CONTRIBUIÇÃO</p>
+                  <p className="eyebrow">{t.emptyDetailEyebrow}</p>
                   <h3>
-                    Seu próximo passo
-                    <br />
-                    fica mais claro aqui.
+                    {t.emptyDetailTitle.split("\n").map((line, i) => (
+                      <span key={i}>
+                        {line}
+                        {i === 0 && <br />}
+                      </span>
+                    ))}
                   </h3>
-                  <p>
-                    Escolha uma issue ao lado para conhecer o problema. O Gemma
-                    ajuda a conectar os pontos e sugere por onde começar.
-                  </p>
+                  <p>{t.emptyDetailDesc}</p>
                   <div className="empty-chips">
-                    <span>Contexto técnico</span>
-                    <span>Arquivos relacionados</span>
-                    <span>Guia de contribuição</span>
+                    <span>{t.chipTechContext}</span>
+                    <span>{t.chipRelatedFiles}</span>
+                    <span>{t.chipContributionGuide}</span>
                   </div>
-                  <small>
-                    Recomendações são hipóteses para revisar, não soluções
-                    garantidas.
-                  </small>
+                  <small>{t.emptyDetailDisclaimer}</small>
                 </div>
               ) : (
                 <>
                   <div className="selected-heading">
-                    <span className="eyebrow">ISSUE #{selected.number}</span>
+                    <span className="eyebrow">
+                      {t.issueNumberEyebrow.replace("{number}", selected.number)}
+                    </span>
                     <a href={selected.url} target="_blank" rel="noreferrer">
-                      Ver no GitHub ↗
+                      {t.viewOnGithub}
                     </a>
                   </div>
                   <h3 className="issue-title">{selected.title}</h3>
                   <details className="description">
-                    <summary>Descrição original</summary>
-                    <p>{selected.body || "Esta issue não tem descrição."}</p>
+                    <summary>{t.originalDescription}</summary>
+                    <p>{selected.body || t.noDescription}</p>
                   </details>
                   <div className="actions">
                     <button
@@ -528,10 +589,10 @@ export default function App() {
                       onClick={() => generate("analysis")}
                     >
                       {busy === "analysis"
-                        ? "Gemma está analisando…"
+                        ? t.btnAnalyzing
                         : analysis
-                          ? "Analisar novamente ↗"
-                          : "Analisar com Gemma ↗"}
+                          ? t.btnReanalyze
+                          : t.btnAnalyze}
                     </button>
                     <button
                       className="secondary"
@@ -541,18 +602,17 @@ export default function App() {
                       onClick={() => generate("guide")}
                     >
                       {busy === "guide"
-                        ? "Preparando seu guia…"
-                        : "Criar guia de contribuição"}
+                        ? t.btnPreparingGuide
+                        : t.btnCreateGuide}
                     </button>
                   </div>
                   {!!busy && busy !== "issues" && (
                     <p className="progress" role="status">
-                      Coletando contexto e consultando o Gemma no Google Cloud.
-                      Isso pode levar alguns minutos.
+                      {t.progressMessage}
                     </p>
                   )}
-                  {analysis && <Result value={analysis} />}
-                  {guide && <Result value={guide} guide />}
+                  {analysis && <Result value={analysis} t={t} />}
+                  {guide && <Result value={guide} guide t={t} />}
                 </>
               )}
             </div>
@@ -563,9 +623,18 @@ export default function App() {
         <span className="brand">
           RepoMentor<span className="footer-dot">✦</span>
         </span>
-        <p>Feito para quem quer dar o primeiro passo.</p>
-        <span>GitHub somente leitura · IA no Google Cloud</span>
+        <p>{t.footerSlogan}</p>
+        <span>{t.footerNote}</span>
       </footer>
+      <button
+        type="button"
+        className="theme-toggle-btn"
+        onClick={toggleTheme}
+        aria-label={t.themeToggleAria}
+        title={theme === "dark" ? t.themeToggleLight : t.themeToggleDark}
+      >
+        <span aria-hidden="true">{theme === "dark" ? "☀️" : "🌙"}</span>
+      </button>
     </>
   );
 }
