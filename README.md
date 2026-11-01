@@ -92,13 +92,13 @@ O código está sob [MIT](LICENSE). Modelos, dependências e materiais de tercei
 
 ## Progresso informado pela equipe
 
-O Meteor foi utilizado como reposit?rio de teste. A equipe registrou na `main` a revis?o de pelo menos tr?s issues reais e a valida??o de acesso ao Gemma no Google Cloud. Os detalhes dessa revis?o n?o constam no registro de valida??o; as evid?ncias documentadas distinguem chamadas pelo AI Studio de valida??o de endpoint pr?prio Vertex AI. Consulte [valida??o](docs/VALIDATION.md).
+O Meteor foi utilizado como repositório de teste. A equipe registrou na `main` a revisão de pelo menos três issues reais e a validação de acesso ao Gemma no Google Cloud. Os detalhes dessa revisão não constam no registro de validação; as evidências documentadas distinguem chamadas pelo AI Studio de validação de endpoint próprio Vertex AI. Consulte [validação](docs/VALIDATION.md).
 
-Gravar a demonstra??o e preparar a primeira release continuam como pr?ximos passos.
+Gravar a demonstração e preparar a primeira release continuam como próximos passos.
 
-## Participa??o no evento
+## Participação no evento
 
-Hacktoberfest Hack Day S?o Jos? dos Campos: a categoria pretendida ? Best Use of Gemma. Esta indica??o n?o comprova inscri??o ou elegibilidade.
+Hacktoberfest Hack Day São José dos Campos: a categoria pretendida é Best Use of Gemma. Esta indicação não comprova inscrição ou elegibilidade.
 
 ## Autores
 
