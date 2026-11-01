@@ -1,46 +1,41 @@
-# Configuração do ambiente
+# Variáveis e autenticação
 
-O backend lê `.env` na raiz do repositório. O frontend não precisa de tokens.
+O [backend](../backend/app/config.py) lê `.env` na raiz ou variáveis do processo. O frontend não precisa de tokens. Copie [`.env.example`](../.env.example) apenas quando não existir `.env`; reinicie o backend após mudar valores.
 
-## Gemma pelo Google AI Studio (sem endpoint Vertex)
+## Sem IA
 
-Configure `GEMMA_PROVIDER=google-ai`, `GEMMA_MODEL_ID=gemma-4-26b-a4b-it` e
-`GOOGLE_AI_API_KEY` com uma chave nova do AI Studio. Os campos Vertex e ADC não
-são necessários nessa opção. A chave é enviada somente pelo backend ao Google.
-Na Vercel, cadastre em Production e faça redeploy. O modelo continua sendo Gemma,
-embora a API se chame Gemini API; não há troca automática para modelos Gemini.
+Deixe as credenciais vazias. Cadastro e consulta pública do GitHub continuam disponíveis; geração fica desabilitada. Testes automatizados usam fixtures e não exigem chave real.
 
-Referência: https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api
+`GITHUB_TOKEN` é opcional para leitura pública e deve pertencer a quem executa a instância. Use permissões mínimas e nenhuma permissão de escrita para este app. Não solicite nem compartilhe o token da mantenedora.
 
-## Execução local
+## Google AI Studio
 
-Na raiz, copie o exemplo apenas se ainda não existir um `.env`:
-
-```powershell
-if (!(Test-Path .env)) { Copy-Item .env.example .env }
+```dotenv
+GEMMA_PROVIDER=google-ai
+GEMMA_MODEL_ID=gemma-4-26b-a4b-it
+GOOGLE_AI_API_KEY=
 ```
 
-| Variável | Como preencher |
+Preencha a chave no seu `.env` ou no gerenciador de segredos da hospedagem. A integração usa Gemma pela Gemini API; não troca o modelo por Gemini. O código aceita `gemma-4-26b-a4b-it` e `gemma-4-31b-it` nesta opção. Disponibilidade, acesso e quota dependem da conta do provedor.
+
+Não é necessário endpoint Vertex nem login ADC nessa opção. A inferência continua remota mesmo com React/FastAPI no computador: solicitações usam a quota e eventual faturamento da chave. Credenciais não devem ter prefixo `VITE_`.
+
+Referência: [Gemma pela Gemini API](https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api).
+
+## Vertex AI
+
+| Variável | Valor |
 | --- | --- |
-| `GITHUB_TOKEN` | Opcional. Token pessoal GitHub para aumentar a cota das consultas públicas. Pode ficar vazio inicialmente. |
-| `GOOGLE_CLOUD_PROJECT` | ID do projeto no Google Cloud, não o nome de exibição. |
-| `GOOGLE_CLOUD_LOCATION` | Região do endpoint implantado no Vertex AI. |
-| `VERTEX_AI_ENDPOINT_ID` | ID do endpoint encontrado em Vertex AI → Online prediction/Endpoints. Não é uma URL. |
-| `VERTEX_AI_ENDPOINT_HOST` | Opcional, somente o `dedicatedEndpointDns` de um endpoint dedicado, sem protocolo ou caminho. |
-| `GEMMA_MODEL_ID` | Identificador exato da variante Gemma 4 servida pelo endpoint; não invente uma tag. |
-| `REQUEST_TIMEOUT_SECONDS` | Pode manter `120`. |
-| `ENABLE_ARCHITECTURE_ANALYSIS` | `true` habilita arquitetura e visão geral sem issue. |
-| `ENABLE_ISSUE_CLASSIFICATION` | `true` habilita classificação de issues. |
-| `ENABLE_CONTRIBUTION_GUIDE` | `true` habilita guias. |
-| `ENABLE_CACHE` | `true` habilita cache temporário por processo. |
+| `GEMMA_PROVIDER` | `vertex-ai` (também é o padrão do exemplo) |
+| `GOOGLE_CLOUD_PROJECT` | ID do projeto, não nome de exibição |
+| `GOOGLE_CLOUD_LOCATION` | Região do endpoint |
+| `VERTEX_AI_ENDPOINT_ID` | ID do endpoint implantado, não URL |
+| `GEMMA_MODEL_ID` | Identificador exato do Gemma 4 servido pelo endpoint |
+| `VERTEX_AI_ENDPOINT_HOST` | Opcional: `dedicatedEndpointDns`, sem protocolo nem caminho |
 
-### Token GitHub
+Esta opção exige endpoint compatível com Chat Completions, API/permissões e recursos na conta Google Cloud. O projeto não cria essa infraestrutura. Avalie custos e quota antes de implantar.
 
-GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token. Dê um nome, defina validade e mantenha acesso somente a repositórios públicos, sem permissões de escrita. Esse token já permite leitura de repositórios públicos. Copie o valor diretamente para `GITHUB_TOKEN` no seu `.env`; não envie por chat ou commit.
-
-### Autenticação Google
-
-O aplicativo usa Application Default Credentials (ADC), não uma chave do Google AI Studio. No PowerShell:
+Para autenticação local no PowerShell, após instalar o Google Cloud CLI:
 
 ```powershell
 gcloud.cmd config set project SEU_PROJECT_ID
@@ -48,21 +43,26 @@ gcloud.cmd auth application-default login
 gcloud.cmd auth application-default set-quota-project SEU_PROJECT_ID
 ```
 
-A conta autenticada precisa de `aiplatform.endpoints.predict` no endpoint. O projeto precisa da API Vertex AI habilitada e de um modelo Gemma 4 implantado em endpoint compatível com Chat Completions. Criar esse endpoint envolve infraestrutura e custos; preencher o `.env` não o cria.
+A identidade precisa de `aiplatform.endpoints.predict`. A chave AI Studio não substitui essa autenticação no adaptador atual. Na hospedagem, o login local não é transferido; configure identidade de runtime/credenciais ADC compatíveis. Federação de identidade na Vercel ainda não está configurada por este projeto. `GOOGLE_APPLICATION_CREDENTIALS`, quando usado pelo Google Auth, recebe caminho de arquivo, não um JSON colado como texto.
 
-Reinicie o backend e consulte `/api/health`. `configured=true` confirma apenas preenchimento; uma análise real valida credenciais, permissões e compatibilidade do endpoint.
+Referência: [ADC local](https://cloud.google.com/docs/authentication/set-up-adc-local-dev-environment).
 
-## Vercel
+## Controles comuns
 
-Em Project → Settings → Environment Variables, cadastre as mesmas variáveis para Preview e/ou Production e faça um novo deploy. Mantenha `GITHUB_TOKEN` como segredo e nunca use prefixo `VITE_` para credenciais.
+| Variável | Padrão / efeito |
+| --- | --- |
+| `REQUEST_TIMEOUT_SECONDS` | `120`, entre 5 e 300; a operação completa também tem teto de 240 segundos |
+| `ENABLE_ARCHITECTURE_ANALYSIS` | `true`; habilita visão geral e participa da habilitação da análise de issues |
+| `ENABLE_ISSUE_CLASSIFICATION` | `true`; necessária, junto à arquitetura, para analisar uma issue |
+| `ENABLE_CONTRIBUTION_GUIDE` | `true`; habilita guias |
+| `ENABLE_CACHE` | `true`; cache em memória por processo, não distribuído |
 
-O login ADC feito no seu computador não é transferido para a Vercel. A autenticação Google em produção exige configuração adicional: preferir Workload Identity Federation com OIDC da Vercel e credenciais ADC compatíveis no backend. Essa federação ainda não foi configurada neste projeto. Não cole um JSON inteiro em `GOOGLE_APPLICATION_CREDENTIALS`: essa variável espera um caminho de arquivo acessível ao processo.
+Não há provedor local/Ollama aceito atualmente. A implementação está proposta na [issue #7](https://github.com/FloraRosaPupo/repomentor/issues/7).
 
-Até configurar a autenticação de produção, a publicação permite explorar repositórios e issues, mas não confirma inferência real do Gemma. Mantenha o preview protegido antes de habilitar uma integração paga; o limite de concorrência e o cache atuais são por processo, não globais.
+## Hospedagem e verificação
 
-## Fontes
+Cadastre variáveis no ambiente correto (desenvolvimento, preview ou produção) e reinicie/republique para aplicá-las. Mantenha segredos no backend; não copie `.env` para assets públicos ou para o Git.
 
-- [Tokens pessoais do GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
-- [ADC para desenvolvimento local](https://cloud.google.com/docs/authentication/set-up-adc-local-dev-environment)
-- [Variáveis de ambiente na Vercel](https://vercel.com/docs/environment-variables)
-- [OIDC na Vercel](https://vercel.com/docs/oidc)
+Em `/api/health`, `configured=true` indica preenchimento válido, não conectividade. `connection_verified` não acompanha automaticamente o histórico de chamadas. Uma geração real valida acesso naquele momento, pode consumir quota e não garante disponibilidade futura.
+
+Verifique separadamente autenticação, quota, modelo indisponível e timeout. Consulte [suporte](../SUPPORT.md), [segurança](../SECURITY.md) e [deploy Vercel](VERCEL.md).

@@ -1,4 +1,4 @@
-﻿# Preview na Vercel
+# Implantação na Vercel (opcional)
 
 O projeto usa a raiz do repositório, preset FastAPI e `index.py` como entrada do backend. O build instala o frontend com `npm ci` e gera seus arquivos em `public/`, com rota explícita para o HTML inicial e montagem de /assets no FastAPI. As rotas `/api/*` continuam no FastAPI, no mesmo endereço.
 
@@ -6,12 +6,12 @@ A configuração está em `vercel.json`; `.vercelignore` exclui ambientes virtua
 
 ```powershell
 vercel.cmd link --project repomentor --scope florarosapupos-projects
-vercel.cmd deploy --scope florarosapupos-projects
+vercel.cmd deploy --target preview --scope florarosapupos-projects
 ```
 
-O comando cria um preview para revisão. Publicar uma versão de produção é uma etapa separada. Confirme sempre o projeto e a equipe antes do deploy.
+Os comandos acima são exemplos para mantenedores autorizados do projeto original, não uma etapa do setup de contribuidores. Para testar em conta própria, use seu projeto e equipe. Solicite explicitamente `--target preview` para revisão; produção é uma etapa separada. Confirme sempre o destino antes do deploy.
 
-Consulte [variáveis e autenticação](ENVIRONMENT.md). A consulta pública do GitHub funciona sem configurar Gemma; o recurso de IA depende de endpoint e autenticação Google válidos.
+Consulte [variáveis e autenticação](ENVIRONMENT.md). A consulta GitHub funciona sem Gemma. Com `google-ai`, a geração usa chave AI Studio e modelo, sem endpoint Vertex. Com `vertex-ai`, precisa de endpoint e ADC compatíveis com a hospedagem. Salvar uma variável não altera automaticamente um deploy existente: republique e verifique.
 
 Cache e bloqueio de concorrência são locais a cada processo. Não equivalem a limites globais de uso; antes de habilitar inferência paga em acesso público, implemente autenticação e limites distribuídos.
 

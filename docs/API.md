@@ -34,7 +34,7 @@ Erros de serviços têm formato `{"error":{"code":"...","message":"..."}}`. Vali
 - JSON validado com Pydantic; resposta incompleta ou truncada é rejeitada.
 - Sem fallback para modelos diferentes ou respostas simuladas.
 - Uma análise ativa por processo; deploy deve manter um worker nesta prévia.
-- Cache em memória por até dez minutos e 32 resultados, identificado pelo contexto, modelo, endpoint e prompt.
+- Cache em memória por até dez minutos e 32 resultados, identificado pelo contexto, modo, idioma, modelo, endpoint e prompt.
 - Timeout da inferência configurável; teto de quatro minutos para coleta e análise.
 - `configured=true` significa apenas que os campos estão preenchidos. Não afirma conectividade ou permissões válidas.
 

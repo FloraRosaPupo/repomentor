@@ -1,4 +1,14 @@
-# Decisão: Google Cloud + Gemma 4
+# Provedores Google e histórico da decisão
+
+## Configuração atual
+
+O backend aceita `google-ai` (Gemma pela Gemini API com chave do AI Studio) e `vertex-ai` (endpoint próprio com ADC). São alternativas explícitas, sem fallback automático. AI Studio não exige endpoint Vertex. Consulte [configuração atual](ENVIRONMENT.md) e [adaptador](../backend/app/gemma.py).
+
+Chamadas reais pelo AI Studio foram verificadas durante o desenvolvimento; isso não comprova a integração Vertex. Nenhum endpoint Vertex foi criado nesta sessão. Não há runtime de inferência local implementado; veja o [roadmap](ROADMAP.md).
+
+## Registro histórico: proposta inicial de Vertex AI
+
+O restante deste arquivo preserva a decisão inicial. Não descreve sozinho todos os provedores atuais nem a hospedagem. A aplicação também tem [configuração Vercel](VERCEL.md).
 
 Decisão registrada em 31/10/2026 a pedido da autora. Substitui a proposta inicial de acesso pela Gemini API no documento de origem.
 

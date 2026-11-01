@@ -1,100 +1,65 @@
 # RepoMentor
 
-Encontre sua primeira contribuição open source com contexto, evidências e um caminho para começar.
+Explore repositórios públicos, entenda issues e prepare uma contribuição com contexto e evidências.
 
-**Status: prévia local implementada. React e FastAPI executam; issues reais são consultadas. O adaptador Gemma 4/Vertex AI está implementado e testado com transporte simulado, mas a inferência real aguarda projeto, região e endpoint configurados.**
+Projeto de código aberto sob [MIT](LICENSE), com React/Vite e Python/FastAPI. O Gemma 4 gera orientações que precisam de revisão humana. O app não altera código, não executa testes dos repositórios consultados e não abre PRs automaticamente.
 
-## A ideia
+## O que funciona
 
-O RepoMentor ajuda desenvolvedores a explorar issues e a começar a contribuir com projetos open source. Cadastre qualquer repositório público do GitHub pela URL ou por `organização/repositório`. A interface consulta issues reais e permite solicitar análise e guia de contribuição quando o Gemma estiver configurado.
+- Cadastro por `organização/repositório` ou URL pública GitHub, salvo neste navegador, sem conta ou sincronização.
+- Consulta de até 30 issues abertas, excluindo PRs, com estados para ausência de issues e consultas limitadas.
+- Visão geral mesmo sem issues, análise individual e guia com passos e sugestões de testes.
+- Provedores `google-ai` (chave AI Studio) e `vertex-ai` (endpoint próprio e autenticação Google Cloud), selecionados explicitamente.
+- Tema claro/escuro, interface PT/EN e idioma enviado ao Gemma. Textos originais do GitHub não são traduzidos automaticamente.
 
-Os repositórios cadastrados ficam salvos neste navegador, sem conta ou sincronização entre pessoas. First Contributions, freeCodeCamp e VS Code aparecem como sugestões por perfil, não como ranking. O Meteor permanece um exemplo possível, não um alvo fixo.
+Confira [evidências no código e roadmap](docs/ROADMAP.md), [API](docs/API.md) e [validação](docs/VALIDATION.md). Ter um adaptador implementado não comprova acesso ao provedor na sua conta. A consulta GitHub funciona sem IA; análises precisam de modelo, credenciais e quota válidos.
 
-O adaptador do Gemma 4 solicita explicações de arquitetura, dificuldade e áreas para investigar. Respostas são validadas com Pydantic e caminhos sem comprovação são removidos. Recomendações exigem revisão humana; testes simulados não comprovam qualidade do modelo.
+## Começar localmente sem chave de IA
 
-## Fluxo planejado
-
-1. Cadastrar ou selecionar um repositório público e consultar suas issues abertas.
-2. Selecionar documentação e arquivos relevantes, com limites de tamanho.
-3. Enviar o contexto ao Gemma 4 no Google Cloud.
-4. Validar a resposta e os caminhos citados.
-5. Exibir recomendações e gerar um guia para a issue escolhida.
-
-## Stack escolhida
-
-| Camada | Tecnologia |
-| --- | --- |
-| Interface | React, Vite, JavaScript/JSX e CSS |
-| Backend | Python 3.12+, FastAPI, Pydantic e HTTPX |
-| IA | Gemma 4 em endpoint próprio do Vertex AI, Google Cloud |
-| Dados | GitHub REST API, somente leitura |
-| Testes | Pytest, Vitest e React Testing Library |
-
-A variante inicial candidata é Gemma 4 26B A4B. A seleção final depende de uma chamada real, qualidade, latência, região, quotas e orçamento. Modelo e endpoint serão configuráveis. Não haverá substituição silenciosa por Gemini ou outro modelo.
-
-O processamento será em nuvem: o contexto público selecionado do repositório será enviado ao Google Cloud. Credenciais ficam exclusivamente no backend.
-
-## Escopo
-
-O MVP inclui cadastro local de repositórios públicos, consulta de issues, análise arquitetural, classificação explicada, verificação de referências e guias de contribuição. Login, sincronização de cadastros, repositórios privados, execução de código, edição de arquivos e abertura automática de PRs ficam fora da primeira versão. A coleta genérica é heurística e precisa ser avaliada em cada stack.
-
-## Documentação
-
-- [Configurar tokens e variáveis de ambiente](docs/ENVIRONMENT.md)
-- [Código de Conduta](CODE_OF_CONDUCT.md)
-
-- [Plano de implementação e specs](docs/IMPLEMENTATION_PLAN.md)
-- [Decisão Google Cloud + Gemma 4](docs/GOOGLE_CLOUD.md)
-- [Plano de testes e aceite](docs/TEST_PLAN.md)
-- [Registro de experimentos](docs/GEMMA_EXPERIMENTS.md)
-- [Contrato da API e limites](docs/API.md)
-- [Validação desta implementação](docs/VALIDATION.md)
-- [Como contribuir](CONTRIBUTING.md)
-
-## Executar localmente
-
-Requisitos: Python 3.13 e Node.js 22.13+ (ou Node 24). Os exemplos abaixo usam PowerShell, a partir da raiz do repositório.
+Use Git, Python **3.13** e Node.js **22.13+ na linha 22, ou 24**. A CI usa Python 3.13 e Node 22. Os comandos abaixo não instalam o modelo.
 
 ```powershell
+git clone https://github.com/FloraRosaPupo/repomentor.git
+cd repomentor
 python -m venv backend/.venv
 .\backend\.venv\Scripts\python.exe -m pip install -r backend/requirements-lock.txt
-cd frontend
-npm ci
-cd ..
-Copy-Item .env.example .env
+npm.cmd ci --prefix frontend
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-Não sobrescreva um `.env` existente. Para listar issues, não é necessário configurar o Google Cloud. `GITHUB_TOKEN` é opcional e aumenta o limite de consultas; mantenha-o somente no backend.
+Em Linux/macOS, use `python3`, `backend/.venv/bin/python` e `npm` no lugar dos executáveis Windows. Não sobrescreva um `.env` existente nem use chaves da mantenedora.
 
-Terminal 1 — backend:
+Terminal 1, a partir da raiz:
 
 ```powershell
 cd backend
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Terminal 2 — frontend:
+Terminal 2, a partir da raiz:
 
 ```powershell
 cd frontend
-npm run dev
+npm.cmd run dev
 ```
 
-Acesse **http://127.0.0.1:5174**. Documentação da API: **http://127.0.0.1:8000/docs**. O proxy do Vite encaminha `/api` para o backend; nenhum token do provedor é enviado ao navegador.
+Abra **http://127.0.0.1:5174**. API: **http://127.0.0.1:8000/docs**. Mantenha ambos os processos ativos; o frontend encaminha `/api` ao backend. A consulta GitHub precisa de internet e está sujeita a limites. `GITHUB_TOKEN` próprio de leitura é opcional.
 
-No Linux/macOS, use `python3` e `backend/.venv/bin/python` nos comandos equivalentes.
+**App local não significa inferência local.** Com AI Studio, a análise é enviada ao Google e usa a quota da chave configurada. Inferência no computador ainda é uma [proposta na issue #7](https://github.com/FloraRosaPupo/repomentor/issues/7). Para contribuir sem IA paga, mantenha credenciais vazias e use os testes simulados.
 
-## Habilitar Gemma 4
+## Habilitar o Gemma (opcional)
 
-1. Implante uma variante Gemma 4 em um endpoint Vertex AI compatível com Chat Completions, pelo Model Garden. Esta aplicação não cria infraestrutura automaticamente.
-2. Preencha no `.env`: `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `VERTEX_AI_ENDPOINT_ID` e o identificador exato em `GEMMA_MODEL_ID`.
-3. Se o endpoint for dedicado, preencha `VERTEX_AI_ENDPOINT_HOST` com seu `dedicatedEndpointDns`, sem protocolo ou caminho.
-4. Autentique o desenvolvimento com `gcloud auth application-default login`. No Windows, use `gcloud.cmd` caso o PowerShell bloqueie o script `.ps1`.
-5. Garanta a permissão `aiplatform.endpoints.predict` e reinicie o backend.
+| Opção | Configuração | Estado |
+| --- | --- | --- |
+| AI Studio | `GEMMA_PROVIDER=google-ai`, `GEMMA_MODEL_ID=gemma-4-26b-a4b-it`, `GOOGLE_AI_API_KEY` própria | Adaptador implementado; chamadas reais registradas em desenvolvimento |
+| Vertex AI | `GEMMA_PROVIDER=vertex-ai`, projeto, região, endpoint, modelo e ADC | Adaptador implementado; requer infraestrutura e acesso próprios |
+| Inferência local | Ainda não disponível | [Issue #7](https://github.com/FloraRosaPupo/repomentor/issues/7) |
 
-Não confunda `configured=true` com conexão validada. A primeira análise real confirmará autenticação, contrato e modelo implantado. Não há fallback para Gemini, Ollama ou resultados fictícios.
+Leia [variáveis e autenticação](docs/ENVIRONMENT.md). A chave AI Studio não substitui ADC no adaptador Vertex. Nenhum recurso pago é provisionado automaticamente e não há fallback silencioso entre provedores.
 
-## Qualidade
+## Testar sem consumir AI Studio
+
+Os testes usam fixtures e transportes controlados, sem chamar o modelo real. Na raiz:
 
 ```powershell
 cd backend
@@ -102,29 +67,25 @@ cd backend
 .\.venv\Scripts\python.exe -m ruff format --check .
 .\.venv\Scripts\python.exe -m pytest -q
 cd ../frontend
-npm run lint
-npm test
-npm run build
+npm.cmd run lint
+npm.cmd test
+npm.cmd run build
 ```
 
-A CI executa essas verificações em pull requests e na `main`, sem credenciais reais.
+A instalação inicial baixa dependências; testes simulados não comprovam qualidade ou disponibilidade do Gemma. A [CI](.github/workflows/ci.yml) roda esses checks em PRs e na `main`. Testes reais são separados e podem consumir quota/créditos.
 
-## Próximas entregas
+## Contribuir e acompanhar
 
-- [x] Criar a base documental do repositório.
-- [x] Inicializar frontend e backend com endpoint de saúde.
-- [ ] Validar acesso ao Gemma 4 no Google Cloud.
-- [x] Implementar cadastro local, consulta de issues e coleta de contexto de repositórios públicos.
-- [x] Implementar análise com evidências e guia de contribuição (integração real pendente).
-- [ ] Executar testes e revisar pelo menos três issues reais.
-- [ ] Gravar demonstração e preparar a primeira release.
+- [Como contribuir](CONTRIBUTING.md): fork, branch, PR, testes e convenções.
+- [Governança](GOVERNANCE.md), [Código de Conduta](CODE_OF_CONDUCT.md), [suporte](SUPPORT.md) e [segurança](SECURITY.md).
+- [Roadmap e issues](docs/ROADMAP.md): propostas com critérios de aceite.
+- [API](docs/API.md), [configuração](docs/ENVIRONMENT.md) e [provedores Google](docs/GOOGLE_CLOUD.md).
+- [Validação](docs/VALIDATION.md), [plano de testes](docs/TEST_PLAN.md) e [experimentos](docs/GEMMA_EXPERIMENTS.md).
+- [Deploy Vercel](docs/VERCEL.md), opcional; desenvolver e consultar estes guias não depende dele.
+- [Plano original](docs/IMPLEMENTATION_PLAN.md), mantido como histórico, não como comprovação de entregas.
 
-Nesta prévia, a análise é por issue selecionada; classificação em lote fica para depois. Backend local, sem autenticação de usuários ou proteção distribuída contra abuso: não expor diretamente na internet.
+## Limites e licença
 
-## Participação no evento
+O contexto é limitado e selecionado por heurísticas. Um caminho verificado não prova a explicação do modelo. Não há autenticação de usuários ou limites distribuídos de consumo implementados. Instâncias públicas com chaves pagas precisam de controles adicionais; veja [SECURITY.md](SECURITY.md).
 
-A categoria pretendida é Best Use of Gemma. Este repositório não comprova inscrição nem elegibilidade; a demonstração, o enquadramento no tema e as regras do evento precisam ser verificados antes da submissão.
-
-## Licença
-
-[MIT](LICENSE). O projeto não é afiliado ao Meteor ou ao Google. Modelos, dependências e materiais consultados mantêm suas próprias licenças.
+O código está sob [MIT](LICENSE). Modelos, dependências e materiais de terceiros mantêm suas próprias licenças. O projeto não é afiliado ao GitHub, Google ou Meteor. Não há garantia de inscrição, certificação ou elegibilidade em eventos.
