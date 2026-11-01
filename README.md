@@ -83,9 +83,28 @@ A instalação inicial baixa dependências; testes simulados não comprovam qual
 - [Validação](docs/VALIDATION.md), [plano de testes](docs/TEST_PLAN.md) e [experimentos](docs/GEMMA_EXPERIMENTS.md).
 - [Deploy Vercel](docs/VERCEL.md), opcional; desenvolver e consultar estes guias não depende dele.
 - [Plano original](docs/IMPLEMENTATION_PLAN.md), mantido como histórico, não como comprovação de entregas.
-
 ## Limites e licença
 
 O contexto é limitado e selecionado por heurísticas. Um caminho verificado não prova a explicação do modelo. Não há autenticação de usuários ou limites distribuídos de consumo implementados. Instâncias públicas com chaves pagas precisam de controles adicionais; veja [SECURITY.md](SECURITY.md).
 
 O código está sob [MIT](LICENSE). Modelos, dependências e materiais de terceiros mantêm suas próprias licenças. O projeto não é afiliado ao GitHub, Google ou Meteor. Não há garantia de inscrição, certificação ou elegibilidade em eventos.
+
+
+## Progresso informado pela equipe
+
+O Meteor foi utilizado como reposit?rio de teste. A equipe registrou na `main` a revis?o de pelo menos tr?s issues reais e a valida??o de acesso ao Gemma no Google Cloud. Os detalhes dessa revis?o n?o constam no registro de valida??o; as evid?ncias documentadas distinguem chamadas pelo AI Studio de valida??o de endpoint pr?prio Vertex AI. Consulte [valida??o](docs/VALIDATION.md).
+
+Gravar a demonstra??o e preparar a primeira release continuam como pr?ximos passos.
+
+## Participa??o no evento
+
+Hacktoberfest Hack Day S?o Jos? dos Campos: a categoria pretendida ? Best Use of Gemma. Esta indica??o n?o comprova inscri??o ou elegibilidade.
+
+## Autores
+
+| Integrante | GitHub |
+| --- | --- |
+| Ana Claudia | [Ana Claudia Nogueira](https://github.com/anacnogueira) |
+| Daniel Dias | [DanielDPereira](https://github.com/DanielDPereira) |
+| Flora Rosa Pupo | [Flora Rosa Pupo](https://github.com/florarosapupo) |
+| Lucas Roberto | [Lucas Roberto](https://github.com/LucasR022) |
